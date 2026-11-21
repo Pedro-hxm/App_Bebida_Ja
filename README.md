@@ -8,7 +8,7 @@
 <img alt="Plataforma" src="https://img.shields.io/badge/Plataforma-Android-3DDC84?style=for-the-badge&logo=android&logoColor=111111">
 <img alt="Etapa" src="https://img.shields.io/badge/Etapa-Base%20visual%20inicial-1F4E78?style=flat-square">
 
-**UNIPÊ · Desenvolvimento Mobile · Professor Leandro Melo · Turno da tarde**
+**UNIPÊ · Desenvolvimento Mobile · Professor Leandro Melo · Turno da noite**
 
 </div>
 
