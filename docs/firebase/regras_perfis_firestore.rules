@@ -1,0 +1,31 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /usuarios/{usuarioId} {
+      function donoDoPerfil() {
+        return request.auth != null && request.auth.uid == usuarioId;
+      }
+
+      function dadosValidos() {
+        return request.resource.data.keys().hasAll(['uid', 'nome', 'email', 'tipoPerfil'])
+          && request.resource.data.keys().hasOnly(['uid', 'nome', 'email', 'tipoPerfil'])
+          && request.resource.data.uid == usuarioId
+          && request.resource.data.nome is string
+          && request.resource.data.nome.size() > 0
+          && request.resource.data.nome.size() <= 80
+          && request.resource.data.email == request.auth.token.email
+          && request.resource.data.tipoPerfil in ['cliente', 'empresa'];
+      }
+
+      allow get: if donoDoPerfil();
+      allow list: if false;
+      allow create: if donoDoPerfil() && dadosValidos();
+      allow update: if donoDoPerfil()
+        && dadosValidos()
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.tipoPerfil == resource.data.tipoPerfil;
+      allow delete: if false;
+    }
+  }
+}

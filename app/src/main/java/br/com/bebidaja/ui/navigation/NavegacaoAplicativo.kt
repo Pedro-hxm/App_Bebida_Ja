@@ -13,12 +13,17 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import br.com.bebidaja.data.RepositorioAutenticacaoFirebase
+import br.com.bebidaja.data.TipoPerfil
 import br.com.bebidaja.ui.screens.CompanyScreen
 import br.com.bebidaja.ui.screens.HomeScreen
 import br.com.bebidaja.ui.screens.LoginScreen
@@ -35,16 +40,45 @@ private data class AppTab(
 )
 
 @Composable
-fun AppNavigation() {
+fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
+    var usuarioAutenticado by rememberSaveable { mutableStateOf(false) }
+    var tipoPerfilAtual by rememberSaveable { mutableStateOf<TipoPerfil?>(null) }
+
     val tabs = listOf(
         AppTab("home", "Início", Icons.Filled.Home),
         AppTab("search", "Buscar", Icons.Filled.Search),
         AppTab("orders", "Pedidos", Icons.Filled.ShoppingCart),
         AppTab("profile", "Perfil", Icons.Filled.Person)
     )
+
+    fun encerrarSessao() {
+        RepositorioAutenticacaoFirebase.sair()
+        usuarioAutenticado = false
+        tipoPerfilAtual = null
+        navController.navigate("login") {
+            popUpTo("home") { inclusive = true }
+            launchSingleTop = true
+        }
+    }
+
+    fun abrirInicioDoPerfil(tipoPerfil: TipoPerfil) {
+        usuarioAutenticado = true
+        tipoPerfilAtual = tipoPerfil
+
+        navController.navigate("home") {
+            popUpTo("login") { inclusive = true }
+            launchSingleTop = true
+        }
+
+        if (tipoPerfil == TipoPerfil.EMPRESA) {
+            navController.navigate("company") {
+                launchSingleTop = true
+            }
+        }
+    }
 
     Scaffold(
         bottomBar = {
@@ -77,16 +111,22 @@ fun AppNavigation() {
             }
             composable("login") {
                 LoginScreen(
+                    firebaseDisponivel = firebaseDisponivel,
                     onRegisterClick = { navController.navigate("cadastro") },
                     onExploreClick = {
                         navController.navigate("home") {
                             popUpTo("login") { inclusive = true }
                         }
-                    }
+                    },
+                    onLoginSuccess = ::abrirInicioDoPerfil
                 )
             }
             composable("cadastro") {
-                RegistrationScreen(onBackClick = { navController.popBackStack() })
+                RegistrationScreen(
+                    firebaseDisponivel = firebaseDisponivel,
+                    onBackClick = { navController.popBackStack() },
+                    onRegistrationSuccess = ::abrirInicioDoPerfil
+                )
             }
             composable("home") {
                 HomeScreen(onSearchClick = { navController.openTab("search") })
@@ -94,10 +134,19 @@ fun AppNavigation() {
             composable("search") { SearchScreen() }
             composable("orders") { OrdersScreen() }
             composable("profile") {
-                ProfileScreen(onCompanyClick = { navController.navigate("company") })
+                ProfileScreen(
+                    tipoPerfil = tipoPerfilAtual,
+                    mostrarSaida = usuarioAutenticado,
+                    onCompanyClick = { navController.navigate("company") },
+                    onSignOutClick = ::encerrarSessao
+                )
             }
             composable("company") {
-                CompanyScreen(onBackClick = { navController.popBackStack() })
+                CompanyScreen(
+                    onBackClick = { navController.popBackStack() },
+                    mostrarSaida = usuarioAutenticado,
+                    onSignOutClick = ::encerrarSessao
+                )
             }
         }
     }
