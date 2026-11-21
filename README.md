@@ -180,7 +180,7 @@ A base visual inicial usa Kotlin, Jetpack Compose e Material 3. Ela apresenta na
 2. Abra no **Android Studio** a pasta do projeto que contém `settings.gradle` ou `settings.gradle.kts`.
 3. Aguarde a sincronização do **Gradle**.
 4. Selecione a configuração `app` e execute em um emulador ou aparelho Android compatível.
-5. Se algum passo não funcionar, consulte as instruções atualizadas pela equipe após a configuração inicial.
+5. Consulte o [passo a passo de sincronização e emulação](./docs/COMO_EXECUTAR.md).
 
 Não publique `local.properties`, tokens, chaves de API, senhas ou dados sensíveis no repositório.
 

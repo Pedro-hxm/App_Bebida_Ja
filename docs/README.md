@@ -2,6 +2,7 @@
 
 Esta pasta reúne a documentação técnica da base do aplicativo.
 
+- Execução: [abrir no Android Studio e emular](COMO_EXECUTAR.md)
 - Produto: [estado atual](produto/estado-atual.md)
 - Arquitetura: [visão geral](arquitetura/visao-geral.md)
 - Arquitetura: [decisões técnicas](arquitetura/decisoes-tecnicas.md)
