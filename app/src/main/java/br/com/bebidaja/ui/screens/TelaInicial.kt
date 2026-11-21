@@ -69,7 +69,9 @@ fun HomeScreen(onSearchClick: () -> Unit) {
         }
         item {
             Card(
-                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
                     .clickable(onClick = onSearchClick),
                 colors = CardDefaults.cardColors(containerColor = AzulClaro)
             ) {

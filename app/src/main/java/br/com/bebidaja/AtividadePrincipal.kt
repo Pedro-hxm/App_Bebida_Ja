@@ -6,7 +6,7 @@ import androidx.activity.compose.setContent
 import br.com.bebidaja.ui.navigation.AppNavigation
 import br.com.bebidaja.ui.theme.BebidaJaTheme
 
-class MainActivity : ComponentActivity() {
+class AtividadePrincipal : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
