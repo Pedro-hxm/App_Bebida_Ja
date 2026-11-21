@@ -1,20 +1,23 @@
 # Configuração do Firebase
 
-## Estado atual
+## Projeto vinculado
 
-O app já contém a integração com Firebase Authentication e Cloud Firestore. Ainda não há projeto vinculado nem arquivo `google-services.json`: a conta usada no Console atingiu o limite de criação de projetos, e nenhum projeto existente foi alterado. Enquanto isso, o app compila, mantém a demonstração disponível e desabilita os botões de login e cadastro.
+- Projeto Firebase: `bebidaja-59d5f`
+- App Android: `br.com.bebidaja`
+- Arquivo de configuração: `app/google-services.json`
 
-## Ativar a integração
+O arquivo de configuração contém identificadores públicos do Firebase. As permissões de acesso aos dados dependem do Firebase Authentication e das regras do Firestore; não use essa chave para APIs Google que não sejam do Firebase.
 
-1. Escolha um projeto Firebase próprio para o Bebida Já ou libere a criação de um projeto novo.
-2. No projeto, adicione um app Android com o ID de pacote exato `br.com.bebidaja`.
-3. Baixe `google-services.json` e coloque-o na pasta `app/` do projeto Android.
-4. Em Authentication, habilite o provedor **E-mail/senha**.
-5. Crie o banco Cloud Firestore e escolha sua região antes de concluir a criação.
-6. Copie as regras de [`firebase/regras_perfis_firestore.rules`](firebase/regras_perfis_firestore.rules) para a aba **Regras** do Firestore e publique-as.
-7. Sincronize o Gradle e compile o app. A presença de `app/google-services.json` ativa o plugin Google Services; sem o arquivo, o build continua compilando para permitir o modo de demonstração.
+## Ativação dos serviços
 
-Referências oficiais: [adicionar Firebase ao app Android](https://firebase.google.com/docs/android/setup), [autenticação por e-mail e senha](https://firebase.google.com/docs/auth/android/password-auth) e [regras de segurança do Firestore](https://firebase.google.com/docs/firestore/security/rules-conditions).
+No Console do Firebase do projeto:
+
+1. Em **Authentication > Método de login**, habilite **E-mail/senha**.
+2. Crie o banco padrão do **Cloud Firestore**, edição Standard, em São Paulo (`southamerica-east1`). A localização não pode ser alterada depois da criação.
+3. Depois que o banco existir, publique as regras de [`firebase/regras_perfis_firestore.rules`](firebase/regras_perfis_firestore.rules).
+4. No Android Studio, sincronize o Gradle e compile o app.
+
+O app encontra o arquivo em `app/google-services.json` para inicializar o Firebase. Até habilitar o provedor e criar o banco, login, cadastro e gravação de perfis não funcionarão.
 
 ## Perfil armazenado
 
@@ -22,4 +25,6 @@ Cada conta usa `usuarios/{uid}` como documento, com os campos `uid`, `nome`, `em
 
 As regras permitem que a pessoa leia e mantenha somente o próprio documento. Listagem e exclusão ficam bloqueadas; e-mail, UID e tipo de perfil não podem ser alterados. O tipo é escolhido no cadastro e controla a navegação do protótipo; ele ainda não concede permissões administrativas para operações comerciais.
 
-Esta etapa não conecta catálogo, estoque, pedidos ou pagamentos ao Firestore. O projeto continua podendo usar Room para persistência local em etapas futuras, mas os perfis on-line desta branch usam Firebase.
+Esta etapa não conecta catálogo, estoque, pedidos ou pagamentos ao Firestore. O projeto continua podendo usar Room para persistência local em etapas futuras; os perfis on-line usam Firebase.
+
+Referências oficiais: [configuração do Firebase para Android](https://firebase.google.com/docs/android/setup), [autenticação por e-mail e senha](https://firebase.google.com/docs/auth/android/password-auth) e [regras de segurança do Firestore](https://firebase.google.com/docs/firestore/security/rules-conditions).
