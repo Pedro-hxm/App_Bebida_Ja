@@ -28,7 +28,7 @@ fun SplashScreen(onContinue: () -> Unit) {
         verticalArrangement = Arrangement.Center
     ) {
         Image(
-            painter = painterResource(R.drawable.bebidaja_logo),
+            painter = painterResource(R.drawable.mascote_bebida_ja),
             contentDescription = "Logo do BebidaJá",
             modifier = Modifier.size(128.dp),
             contentScale = ContentScale.Fit
