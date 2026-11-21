@@ -31,7 +31,9 @@ fun OrdersScreen() {
 @Composable
 fun ProfileScreen(onCompanyClick: () -> Unit) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.Start
     ) {
@@ -46,7 +48,9 @@ fun ProfileScreen(onCompanyClick: () -> Unit) {
 @Composable
 fun CompanyScreen(onBackClick: () -> Unit) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text("Área da empresa", style = MaterialTheme.typography.headlineMedium)
@@ -60,7 +64,9 @@ fun CompanyScreen(onBackClick: () -> Unit) {
 @Composable
 private fun PlaceholderScreen(title: String, message: String) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         horizontalAlignment = Alignment.Start
     ) {

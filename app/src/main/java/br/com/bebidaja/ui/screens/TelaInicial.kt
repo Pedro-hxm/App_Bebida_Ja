@@ -56,7 +56,7 @@ fun HomeScreen(onSearchClick: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Image(
-                    painter = painterResource(R.drawable.bebidaja_logo),
+                    painter = painterResource(R.drawable.mascote_bebida_ja),
                     contentDescription = "Logo do BebidaJá",
                     modifier = Modifier.size(48.dp),
                     contentScale = ContentScale.Fit
@@ -69,7 +69,9 @@ fun HomeScreen(onSearchClick: () -> Unit) {
         }
         item {
             Card(
-                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
                     .clickable(onClick = onSearchClick),
                 colors = CardDefaults.cardColors(containerColor = AzulClaro)
             ) {

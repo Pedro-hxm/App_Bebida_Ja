@@ -2,13 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
         android:allowBackup="true"
-        android:icon="@drawable/bebidaja_logo"
+        android:icon="@drawable/mascote_bebida_ja"
         android:label="BebidaJá"
-        android:roundIcon="@drawable/bebidaja_logo"
+        android:roundIcon="@drawable/mascote_bebida_ja"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
         <activity
-            android:name=".MainActivity"
+            android:name=".AtividadePrincipal"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
