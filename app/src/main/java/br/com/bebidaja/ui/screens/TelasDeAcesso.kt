@@ -216,7 +216,7 @@ fun RegistrationScreen(
                         mensagem = "Informe um e-mail válido."
                     }
 
-                    senha.length <= 6 -> {
+                    senha.length < 6 -> {
                         mensagem = "A senha precisa ter pelo menos 6 caracteres."
                     }
 
