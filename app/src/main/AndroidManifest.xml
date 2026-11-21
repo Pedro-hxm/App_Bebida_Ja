@@ -4,7 +4,7 @@
         android:allowBackup="true"
         android:icon="@drawable/mascote_bebida_ja"
         android:label="BebidaJá"
-        android:roundIcon="@drawable/mascote_bebida_ja"
+        android:roundIcon="@drawable\mascote_inexistente"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
         <activity
