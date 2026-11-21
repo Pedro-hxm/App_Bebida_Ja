@@ -1,5 +1,6 @@
 package br.com.bebidaja.ui.screens
 
+import android.util.Patterns
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -9,8 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -29,14 +30,21 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import br.com.bebidaja.R
+import br.com.bebidaja.data.PerfilIncompletoException
+import br.com.bebidaja.data.RepositorioAutenticacaoFirebase
+import br.com.bebidaja.data.TipoPerfil
 
 @Composable
 fun LoginScreen(
+    firebaseDisponivel: Boolean,
     onRegisterClick: () -> Unit,
-    onExploreClick: () -> Unit
+    onExploreClick: () -> Unit,
+    onLoginSuccess: (TipoPerfil) -> Unit
 ) {
     var email by rememberSaveable { mutableStateOf("") }
     var senha by rememberSaveable { mutableStateOf("") }
+    var carregando by rememberSaveable { mutableStateOf(false) }
+    var mensagem by rememberSaveable { mutableStateOf<String?>(null) }
 
     Column(
         modifier = Modifier
@@ -74,14 +82,52 @@ fun LoginScreen(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
         )
 
-        Button(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth()) {
-            Text("Entrar")
+        Button(
+            onClick = {
+                val emailNormalizado = email.trim().lowercase()
+
+                when {
+                    !Patterns.EMAIL_ADDRESS.matcher(emailNormalizado).matches() -> {
+                        mensagem = "Informe um e-mail válido."
+                    }
+
+                    senha.isBlank() -> {
+                        mensagem = "Informe sua senha."
+                    }
+
+                    else -> {
+                        carregando = true
+                        mensagem = null
+
+                        RepositorioAutenticacaoFirebase.entrar(emailNormalizado, senha) { resultado ->
+                            carregando = false
+
+                            resultado.onSuccess(onLoginSuccess)
+                                .onFailure { erro ->
+                                    mensagem = if (erro is PerfilIncompletoException) {
+                                        "Seu cadastro está incompleto. Use Criar uma conta para concluí-lo."
+                                    } else {
+                                        "Não foi possível entrar. Confira os dados e tente novamente."
+                                    }
+                                }
+                        }
+                    }
+                }
+            },
+            enabled = firebaseDisponivel && !carregando,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(if (carregando) "Entrando..." else "Entrar")
         }
 
-        Text(
-            "O acesso por conta estará disponível em breve.",
-            style = MaterialTheme.typography.bodySmall
-        )
+        mensagem?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+
+        if (!firebaseDisponivel) {
+            Text(
+                "A autenticação será liberada após a configuração do Firebase.",
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
 
         TextButton(onClick = onRegisterClick) {
             Text("Criar uma conta")
@@ -94,11 +140,17 @@ fun LoginScreen(
 }
 
 @Composable
-fun RegistrationScreen(onBackClick: () -> Unit) {
+fun RegistrationScreen(
+    firebaseDisponivel: Boolean,
+    onBackClick: () -> Unit,
+    onRegistrationSuccess: (TipoPerfil) -> Unit
+) {
     var nome by rememberSaveable { mutableStateOf("") }
     var email by rememberSaveable { mutableStateOf("") }
     var senha by rememberSaveable { mutableStateOf("") }
-    var tipoPerfil by rememberSaveable { mutableStateOf("cliente") }
+    var tipoPerfil by rememberSaveable { mutableStateOf(TipoPerfil.CLIENTE) }
+    var carregando by rememberSaveable { mutableStateOf(false) }
+    var mensagem by rememberSaveable { mutableStateOf<String?>(null) }
 
     Column(
         modifier = Modifier
@@ -112,28 +164,28 @@ fun RegistrationScreen(onBackClick: () -> Unit) {
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
-                selected = tipoPerfil == "cliente",
-                onClick = { tipoPerfil = "cliente" },
+                selected = tipoPerfil == TipoPerfil.CLIENTE,
+                onClick = { tipoPerfil = TipoPerfil.CLIENTE },
                 label = { Text("Cliente") }
             )
             FilterChip(
-                selected = tipoPerfil == "empresa",
-                onClick = { tipoPerfil = "empresa" },
+                selected = tipoPerfil == TipoPerfil.EMPRESA,
+                onClick = { tipoPerfil = TipoPerfil.EMPRESA },
                 label = { Text("Empresa") }
             )
         }
 
         OutlinedTextField(
             value = nome,
-            onValueChange = { nome = it },
+            onValueChange = { if (it.length <= 80) nome = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text(if (tipoPerfil == "empresa") "Nome da empresa" else "Seu nome") },
+            label = { Text(if (tipoPerfil == TipoPerfil.EMPRESA) "Nome da empresa" else "Seu nome") },
             singleLine = true
         )
 
         OutlinedTextField(
             value = email,
-            onValueChange = { email = it },
+            onValueChange = { if (it.length <= 254) email = it },
             modifier = Modifier.fillMaxWidth(),
             label = { Text("E-mail") },
             singleLine = true,
@@ -150,14 +202,58 @@ fun RegistrationScreen(onBackClick: () -> Unit) {
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
         )
 
-        Button(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth()) {
-            Text("Criar conta")
+        Button(
+            onClick = {
+                val nomeNormalizado = nome.trim()
+                val emailNormalizado = email.trim().lowercase()
+
+                when {
+                    nomeNormalizado.isBlank() -> {
+                        mensagem = "Informe seu nome ou o nome da empresa."
+                    }
+
+                    !Patterns.EMAIL_ADDRESS.matcher(emailNormalizado).matches() -> {
+                        mensagem = "Informe um e-mail válido."
+                    }
+
+                    senha.length < 6 -> {
+                        mensagem = "A senha precisa ter pelo menos 6 caracteres."
+                    }
+
+                    else -> {
+                        carregando = true
+                        mensagem = null
+
+                        RepositorioAutenticacaoFirebase.criarConta(
+                            nomeNormalizado,
+                            emailNormalizado,
+                            senha,
+                            tipoPerfil
+                        ) { resultado ->
+                            carregando = false
+
+                            resultado.onSuccess(onRegistrationSuccess)
+                                .onFailure {
+                                    mensagem = "Não foi possível criar a conta. Confira os dados e tente novamente."
+                                }
+                        }
+                    }
+                }
+            },
+            enabled = firebaseDisponivel && !carregando,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(if (carregando) "Criando conta..." else "Criar conta")
         }
 
-        Text(
-            "O cadastro por conta estará disponível em breve.",
-            style = MaterialTheme.typography.bodySmall
-        )
+        mensagem?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+
+        if (!firebaseDisponivel) {
+            Text(
+                "O cadastro será liberado após a configuração do Firebase.",
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
 
         TextButton(onClick = onBackClick, modifier = Modifier.align(Alignment.CenterHorizontally)) {
             Text("Voltar ao login")

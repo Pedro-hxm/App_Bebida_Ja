@@ -7,10 +7,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import br.com.bebidaja.data.TipoPerfil
 
 @Composable
 fun SearchScreen() {
@@ -29,7 +31,12 @@ fun OrdersScreen() {
 }
 
 @Composable
-fun ProfileScreen(onCompanyClick: () -> Unit) {
+fun ProfileScreen(
+    tipoPerfil: TipoPerfil?,
+    mostrarSaida: Boolean,
+    onCompanyClick: () -> Unit,
+    onSignOutClick: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -38,15 +45,30 @@ fun ProfileScreen(onCompanyClick: () -> Unit) {
         horizontalAlignment = Alignment.Start
     ) {
         Text("Perfil", style = MaterialTheme.typography.headlineMedium)
-        Text("As opções de conta serão adicionadas durante o projeto.")
+        Text(
+            when (tipoPerfil) {
+                TipoPerfil.CLIENTE -> "Conta de cliente"
+                TipoPerfil.EMPRESA -> "Conta de empresa"
+                null -> "As opções de conta serão adicionadas durante o projeto."
+            }
+        )
         Button(onClick = onCompanyClick) {
             Text("Área da empresa (demonstração)")
+        }
+        if (mostrarSaida) {
+            TextButton(onClick = onSignOutClick) {
+                Text("Sair da conta")
+            }
         }
     }
 }
 
 @Composable
-fun CompanyScreen(onBackClick: () -> Unit) {
+fun CompanyScreen(
+    onBackClick: () -> Unit,
+    mostrarSaida: Boolean,
+    onSignOutClick: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -57,6 +79,11 @@ fun CompanyScreen(onBackClick: () -> Unit) {
         Text("Cadastro comercial e painel serão desenvolvidos nas próximas etapas.")
         Button(onClick = onBackClick) {
             Text("Voltar")
+        }
+        if (mostrarSaida) {
+            TextButton(onClick = onSignOutClick) {
+                Text("Sair da conta")
+            }
         }
     }
 }
