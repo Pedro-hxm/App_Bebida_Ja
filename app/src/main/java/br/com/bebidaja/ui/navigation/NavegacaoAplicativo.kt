@@ -73,7 +73,7 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
             launchSingleTop = true
         }
 
-        if (tipoPerfil == TipoPerfil.EMPRESA) {
+        if (tipoPerfil == TipoPerfil.CLIENTE) {
             navController.navigate("company") {
                 launchSingleTop = true
             }
