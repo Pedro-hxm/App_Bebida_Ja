@@ -6,7 +6,7 @@
 
 <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-Android-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white">
 <img alt="Plataforma" src="https://img.shields.io/badge/Plataforma-Android-3DDC84?style=for-the-badge&logo=android&logoColor=111111">
-<img alt="Etapa" src="https://img.shields.io/badge/Etapa-Escopo%20e%20desenvolvimento%20planejado-F59E0B?style=flat-square">
+<img alt="Etapa" src="https://img.shields.io/badge/Etapa-Base%20visual%20inicial-1F4E78?style=flat-square">
 
 **UNIPÊ · Desenvolvimento Mobile · Professor Leandro Melo · Turno da tarde**
 
@@ -156,7 +156,7 @@ As categorias de referência incluem **Água, Refrigerante, Suco, Energético, C
 | **Kotlin** | Linguagem principal do aplicativo Android nativo. |
 | **Android Studio / Android SDK** | Desenvolvimento, compilação e execução do aplicativo. |
 | **Material Design** | Referência para a interface e seus componentes. |
-| **Activities/Fragments ou Jetpack Compose** | Abordagens Android possíveis; a equipe deve definir a adotada. |
+| **Jetpack Compose e Material 3** | Interface nativa escolhida para a base visual inicial. |
 | **Room/SQLite** | **Opção** de persistência local para a fase acadêmica, não uma obrigação já definida. |
 | **Firebase ou API própria** | **Possibilidades futuras**, previstas no plano, para autenticação e dados on-line. |
 | **Git/GitHub** | Versionamento e colaboração entre os integrantes. |
@@ -166,7 +166,9 @@ As categorias de referência incluem **Água, Refrigerante, Suco, Energético, C
 
 ## Como executar
 
-**Situação da documentação recebida:** o README anterior informava que a base Android ainda não estava adicionada ao repositório. **Esta atualização não verifica o conteúdo atual do GitHub nem afirma que o aplicativo já compila.** Depois da inclusão da base Android, mantenham nesta seção a versão real do SDK, as dependências e os passos testados.
+A base visual inicial usa Kotlin, Jetpack Compose e Material 3. Ela apresenta navegação e telas demonstrativas; cadastro, login, busca funcional, persistência e pedidos ainda não foram implementados.
+
+> Requisitos: Android Studio, Android SDK Platform 37 e JDK 17 ou superior. Na primeira sincronização, o Gradle baixa a distribuição e as dependências.
 
 1. Clone o repositório:
 
@@ -175,12 +177,16 @@ As categorias de referência incluem **Água, Refrigerante, Suco, Energético, C
    cd App_Bebida_Ja
    ```
 
-2. Quando a base Android estiver disponível, abra no **Android Studio** o diretório que contém `settings.gradle` ou `settings.gradle.kts`.
+2. Abra no **Android Studio** a pasta do projeto que contém `settings.gradle` ou `settings.gradle.kts`.
 3. Aguarde a sincronização do **Gradle**.
 4. Selecione a configuração `app` e execute em um emulador ou aparelho Android compatível.
 5. Se algum passo não funcionar, consulte as instruções atualizadas pela equipe após a configuração inicial.
 
 Não publique `local.properties`, tokens, chaves de API, senhas ou dados sensíveis no repositório.
+
+## Documentação técnica
+
+Os documentos de arquitetura e o estado desta base estão em [docs/README.md](./docs/README.md).
 
 ## Equipe e responsabilidades
 
