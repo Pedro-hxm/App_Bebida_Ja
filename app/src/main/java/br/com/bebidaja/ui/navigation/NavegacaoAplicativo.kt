@@ -69,7 +69,7 @@ fun AppNavigation() {
         ) {
             composable("splash") {
                 SplashScreen {
-                    navController.navigate("home") {
+                    navController.navigate("login") {
                         popUpTo("splash") { inclusive = true }
                         launchSingleTop = true
                     }
