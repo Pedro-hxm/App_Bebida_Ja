@@ -60,13 +60,13 @@ fun SplashScreen(onFinished: () -> Unit) {
             painter = painterResource(R.drawable.mascote_bebida_ja),
             contentDescription = "Mascote do Bebida Já",
             modifier = Modifier
-                .size(200.dp)
+                .size(width = 200.dp, height = 88.dp)
                 .graphicsLayer {
                     scaleX = escala
                     scaleY = escala
                     alpha = opacidade
                 },
-            contentScale = ContentScale.Fit
+            contentScale = ContentScale.FillBounds
         )
 
         Spacer(Modifier.height(20.dp))
