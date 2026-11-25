@@ -42,7 +42,10 @@ import br.com.bebidaja.ui.components.StoreCard
 import br.com.bebidaja.ui.theme.AzulClaro
 
 @Composable
-fun HomeScreen(onSearchClick: () -> Unit) {
+fun HomeScreen(
+    onSearchClick: () -> Unit,
+    onAddToCart: (br.com.bebidaja.data.DemoBeverage) -> Unit
+) {
     var selectedCategory by rememberSaveable { mutableStateOf(demoCategories.first()) }
 
     LazyColumn(
@@ -105,7 +108,9 @@ fun HomeScreen(onSearchClick: () -> Unit) {
         item { SectionTitle("Estabelecimentos") }
         items(demoStores) { store -> StoreCard(store) }
         item { SectionTitle("Bebidas em destaque") }
-        items(demoBeverages) { beverage -> BeverageCard(beverage) }
+        items(demoBeverages) { beverage ->
+            BeverageCard(beverage) { onAddToCart(beverage) }
+        }
         item {
             Text(
                 "Conteúdo ilustrativo para a base visual.",

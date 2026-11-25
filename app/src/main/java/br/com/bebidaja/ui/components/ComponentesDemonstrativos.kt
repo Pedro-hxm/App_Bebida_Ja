@@ -48,7 +48,7 @@ fun SectionTitle(title: String) {
 }
 
 @Composable
-fun BeverageCard(beverage: DemoBeverage) {
+fun BeverageCard(beverage: DemoBeverage, onAddClick: () -> Unit = {}) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -72,6 +72,9 @@ fun BeverageCard(beverage: DemoBeverage) {
                 Text(beverage.name, style = MaterialTheme.typography.titleMedium)
                 Text(beverage.description, color = CinzaTexto)
                 Text(beverage.price, style = MaterialTheme.typography.titleSmall)
+                androidx.compose.material3.Button(onClick = onAddClick) {
+                    Text("Adicionar ao carrinho")
+                }
             }
         }
     }
