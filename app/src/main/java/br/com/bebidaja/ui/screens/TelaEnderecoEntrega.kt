@@ -24,7 +24,8 @@ import br.com.bebidaja.data.EnderecoEntrega
 @Composable
 fun TelaEnderecoEntrega(
     enderecoInicial: EnderecoEntrega?,
-    onSalvar: (EnderecoEntrega) -> Unit
+    onSalvar: (EnderecoEntrega) -> Unit,
+    onContinuar: () -> Unit
 ) {
     var rua by rememberSaveable { mutableStateOf(enderecoInicial?.rua.orEmpty()) }
     var numero by rememberSaveable { mutableStateOf(enderecoInicial?.numero.orEmpty()) }
@@ -119,7 +120,14 @@ fun TelaEnderecoEntrega(
             },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(if (enderecoInicial == null) "Salvar endereço" else "Atualizar endereço")
+            Text(if (enderecoSalvo) "Atualizar endereço" else "Salvar endereço")
+        }
+        Button(
+            onClick = onContinuar,
+            enabled = enderecoSalvo,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Continuar para checkout")
         }
     }
 }

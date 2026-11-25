@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import br.com.bebidaja.data.Carrinho
 import br.com.bebidaja.data.EnderecoEntrega
+import br.com.bebidaja.data.FormaPagamento
 import br.com.bebidaja.data.ItemCarrinho
 import br.com.bebidaja.data.ProdutoCarrinho
 import java.text.NumberFormat
@@ -32,11 +33,17 @@ class EstadoCarrinhoUi {
     val carrinho = Carrinho()
     var endereco by androidx.compose.runtime.mutableStateOf<EnderecoEntrega?>(null)
         private set
+    var formaPagamento by androidx.compose.runtime.mutableStateOf<FormaPagamento?>(null)
+        private set
     var revisao by mutableIntStateOf(0)
         private set
 
     fun salvarEndereco(novoEndereco: EnderecoEntrega) {
         endereco = novoEndereco
+    }
+
+    fun selecionarFormaPagamento(forma: FormaPagamento) {
+        formaPagamento = forma
     }
 
     fun adicionar(produto: ProdutoCarrinho) {

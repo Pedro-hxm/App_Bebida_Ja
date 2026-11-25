@@ -25,6 +25,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import br.com.bebidaja.data.RepositorioAutenticacaoFirebase
 import br.com.bebidaja.data.EnderecoEntrega
+import br.com.bebidaja.data.FormaPagamento
 import br.com.bebidaja.data.ProdutoCarrinho
 import br.com.bebidaja.data.TipoPerfil
 import br.com.bebidaja.ui.screens.CompanyScreen
@@ -38,6 +39,7 @@ import br.com.bebidaja.ui.screens.SplashScreen
 import br.com.bebidaja.ui.screens.EstadoCarrinhoUi
 import br.com.bebidaja.ui.screens.TelaCarrinho
 import br.com.bebidaja.ui.screens.TelaEnderecoEntrega
+import br.com.bebidaja.ui.screens.TelaCheckout
 
 private data class AppTab(
     val route: String,
@@ -160,8 +162,28 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
                 }
             }
             composable("endereco") {
-                TelaEnderecoEntrega(estadoCarrinho.endereco) { endereco: EnderecoEntrega ->
-                    estadoCarrinho.salvarEndereco(endereco)
+                TelaEnderecoEntrega(
+                    enderecoInicial = estadoCarrinho.endereco,
+                    onSalvar = { endereco: EnderecoEntrega ->
+                        estadoCarrinho.salvarEndereco(endereco)
+                    },
+                    onContinuar = { navController.navigate("checkout") }
+                )
+            }
+            composable("checkout") {
+                val endereco = estadoCarrinho.endereco
+                if (endereco != null && !estadoCarrinho.carrinho.estaVazio) {
+                    TelaCheckout(
+                        itens = estadoCarrinho.carrinho.itens,
+                        endereco = endereco,
+                        pagamentoInicial = estadoCarrinho.formaPagamento,
+                        totalCentavos = estadoCarrinho.carrinho.totalCentavos,
+                        onConfirmar = { forma: FormaPagamento ->
+                            estadoCarrinho.selecionarFormaPagamento(forma)
+                        }
+                    )
+                } else {
+                    navController.popBackStack("cart", inclusive = false)
                 }
             }
             composable("orders") { OrdersScreen() }
