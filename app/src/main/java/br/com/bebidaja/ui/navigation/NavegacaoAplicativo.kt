@@ -24,6 +24,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import br.com.bebidaja.data.RepositorioAutenticacaoFirebase
+import br.com.bebidaja.data.EnderecoEntrega
 import br.com.bebidaja.data.ProdutoCarrinho
 import br.com.bebidaja.data.TipoPerfil
 import br.com.bebidaja.ui.screens.CompanyScreen
@@ -36,6 +37,7 @@ import br.com.bebidaja.ui.screens.SearchScreen
 import br.com.bebidaja.ui.screens.SplashScreen
 import br.com.bebidaja.ui.screens.EstadoCarrinhoUi
 import br.com.bebidaja.ui.screens.TelaCarrinho
+import br.com.bebidaja.ui.screens.TelaEnderecoEntrega
 
 private data class AppTab(
     val route: String,
@@ -150,7 +152,18 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
                 )
             }
             composable("search") { SearchScreen() }
-            composable("cart") { TelaCarrinho(estadoCarrinho) { } }
+            composable("cart") {
+                TelaCarrinho(estadoCarrinho) {
+                    if (!estadoCarrinho.carrinho.estaVazio) {
+                        navController.navigate("endereco")
+                    }
+                }
+            }
+            composable("endereco") {
+                TelaEnderecoEntrega(estadoCarrinho.endereco) { endereco: EnderecoEntrega ->
+                    estadoCarrinho.salvarEndereco(endereco)
+                }
+            }
             composable("orders") { OrdersScreen() }
             composable("profile") {
                 ProfileScreen(

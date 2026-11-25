@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import br.com.bebidaja.data.Carrinho
+import br.com.bebidaja.data.EnderecoEntrega
 import br.com.bebidaja.data.ItemCarrinho
 import br.com.bebidaja.data.ProdutoCarrinho
 import java.text.NumberFormat
@@ -29,8 +30,14 @@ import java.util.Locale
 /** Adaptador simples para manter o domínio sem dependência de ViewModel nesta etapa. */
 class EstadoCarrinhoUi {
     val carrinho = Carrinho()
+    var endereco by androidx.compose.runtime.mutableStateOf<EnderecoEntrega?>(null)
+        private set
     var revisao by mutableIntStateOf(0)
         private set
+
+    fun salvarEndereco(novoEndereco: EnderecoEntrega) {
+        endereco = novoEndereco
+    }
 
     fun adicionar(produto: ProdutoCarrinho) {
         carrinho.adicionar(produto)
