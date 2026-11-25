@@ -3,6 +3,7 @@ package br.com.bebidaja.ui.navigation
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -17,6 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import com.google.firebase.auth.FirebaseAuth
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -24,6 +26,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import br.com.bebidaja.data.RepositorioAutenticacaoFirebase
+import br.com.bebidaja.data.RepositorioPedidosEmMemoria
 import br.com.bebidaja.data.EnderecoEntrega
 import br.com.bebidaja.data.FormaPagamento
 import br.com.bebidaja.data.ProdutoCarrinho
@@ -56,11 +59,17 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
     var usuarioAutenticado by rememberSaveable { mutableStateOf(false) }
     var tipoPerfilAtual by rememberSaveable { mutableStateOf<TipoPerfil?>(null) }
     val estadoCarrinho = remember { EstadoCarrinhoUi() }
+    val repositorioPedidos = remember { RepositorioPedidosEmMemoria() }
+    val clienteIdAtual = remember(usuarioAutenticado) {
+        runCatching { FirebaseAuth.getInstance().currentUser?.uid }.getOrNull()
+            ?: "cliente-demonstracao"
+    }
 
     val tabs = listOf(
         AppTab("home", "Início", Icons.Filled.Home),
         AppTab("search", "Buscar", Icons.Filled.Search),
         AppTab("cart", "Carrinho", Icons.Filled.ShoppingCart),
+        AppTab("orders", "Pedidos", Icons.AutoMirrored.Filled.List),
         AppTab("profile", "Perfil", Icons.Filled.Person)
     )
 
@@ -193,13 +202,33 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
                 if (forma != null && !estadoCarrinho.carrinho.estaVazio) {
                     TelaComprovante(
                         formaPagamento = forma,
-                        totalCentavos = estadoCarrinho.carrinho.totalCentavos
+                        totalCentavos = estadoCarrinho.carrinho.totalCentavos,
+                        onCriarPedido = {
+                            val resultado = repositorioPedidos.confirmarPedido(
+                                clienteId = clienteIdAtual,
+                                carrinho = estadoCarrinho.carrinho,
+                                endereco = estadoCarrinho.endereco,
+                                formaPagamento = forma,
+                                referenciaComprovante = "DEMO-BEBIDAJA-001",
+                                chaveConfirmacao = estadoCarrinho.chaveConfirmacao
+                            )
+                            if (resultado.isSuccess) estadoCarrinho.limparCarrinho()
+                            resultado
+                        },
+                        onPedidoCriado = {
+                            navController.navigate("orders") {
+                                popUpTo("home")
+                                launchSingleTop = true
+                            }
+                        }
                     )
                 } else {
                     navController.popBackStack("cart", inclusive = false)
                 }
             }
-            composable("orders") { OrdersScreen() }
+            composable("orders") {
+                OrdersScreen(repositorioPedidos.listarPorCliente(clienteIdAtual))
+            }
             composable("profile") {
                 ProfileScreen(
                     tipoPerfil = tipoPerfilAtual,

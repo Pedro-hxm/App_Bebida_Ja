@@ -1,10 +1,15 @@
 package br.com.bebidaja.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -13,6 +18,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import br.com.bebidaja.data.TipoPerfil
+import br.com.bebidaja.data.Pedido
+import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun SearchScreen() {
@@ -23,12 +33,49 @@ fun SearchScreen() {
 }
 
 @Composable
-fun OrdersScreen() {
-    PlaceholderScreen(
-        title = "Seus pedidos",
-        message = "O acompanhamento de pedidos será desenvolvido nas próximas etapas."
-    )
+fun OrdersScreen(pedidos: List<Pedido>) {
+    if (pedidos.isEmpty()) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalAlignment = Alignment.Start
+        ) {
+            Text("Seus pedidos", style = MaterialTheme.typography.headlineMedium)
+            Text("Você ainda não tem pedidos.")
+        }
+        return
+    }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item { Text("Histórico de pedidos", style = MaterialTheme.typography.headlineMedium) }
+        items(pedidos, key = { it.id }) { pedido ->
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text("Pedido #${pedido.id.take(8)}", style = MaterialTheme.typography.titleMedium)
+                    Text("Data: ${formatarDataPedido(pedido.criadoEmMillis)}")
+                    Text("Status: ${pedido.status.descricao}")
+                    pedido.itens.forEach { item ->
+                        Text("${item.quantidade} × ${item.nomeProduto}")
+                    }
+                    Text("Total: ${formatarValorPedido(pedido.totalCentavos)}")
+                }
+            }
+        }
+    }
 }
+
+private fun formatarDataPedido(millis: Long): String =
+    SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.forLanguageTag("pt-BR")).format(Date(millis))
+
+private fun formatarValorPedido(centavos: Long): String =
+    NumberFormat.getCurrencyInstance(Locale.forLanguageTag("pt-BR")).format(centavos / 100.0)
 
 @Composable
 fun ProfileScreen(

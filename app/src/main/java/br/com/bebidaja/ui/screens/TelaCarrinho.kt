@@ -25,6 +25,7 @@ import br.com.bebidaja.data.EnderecoEntrega
 import br.com.bebidaja.data.FormaPagamento
 import br.com.bebidaja.data.ItemCarrinho
 import br.com.bebidaja.data.ProdutoCarrinho
+import java.util.UUID
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -37,6 +38,8 @@ class EstadoCarrinhoUi {
         private set
     var revisao by mutableIntStateOf(0)
         private set
+    var chaveConfirmacao by androidx.compose.runtime.mutableStateOf(UUID.randomUUID().toString())
+        private set
 
     fun salvarEndereco(novoEndereco: EnderecoEntrega) {
         endereco = novoEndereco
@@ -48,12 +51,19 @@ class EstadoCarrinhoUi {
 
     fun adicionar(produto: ProdutoCarrinho) {
         carrinho.adicionar(produto)
+        chaveConfirmacao = UUID.randomUUID().toString()
+        revisao++
+    }
+
+    fun limparCarrinho() {
+        carrinho.limpar()
         revisao++
     }
 
     fun alterarQuantidade(item: ItemCarrinho, quantidade: Int) {
         if (quantidade <= 0) carrinho.remover(item.produto.produtoId, item.produto.empresaId)
         else carrinho.alterarQuantidade(item.produto.produtoId, item.produto.empresaId, quantidade)
+        chaveConfirmacao = UUID.randomUUID().toString()
         revisao++
     }
 }

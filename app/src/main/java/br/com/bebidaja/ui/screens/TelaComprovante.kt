@@ -17,15 +17,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import br.com.bebidaja.data.FormaPagamento
+import br.com.bebidaja.data.Pedido
+import br.com.bebidaja.ui.theme.CinzaTexto
 import java.text.NumberFormat
 import java.util.Locale
 
 @Composable
 fun TelaComprovante(
     formaPagamento: FormaPagamento,
-    totalCentavos: Long
+    totalCentavos: Long,
+    onCriarPedido: () -> Result<Pedido>,
+    onPedidoCriado: () -> Unit
 ) {
     var comprovanteEnviado by rememberSaveable { mutableStateOf(false) }
+    var erroCriacao by rememberSaveable { mutableStateOf<String?>(null) }
 
     Column(
         modifier = Modifier
@@ -36,7 +41,7 @@ fun TelaComprovante(
         Text("Comprovante", style = MaterialTheme.typography.headlineMedium)
         Text(
             "Etapa demonstrativa: não envie um comprovante bancário real.",
-            color = MaterialTheme.colorScheme.secondary
+            color = CinzaTexto
         )
 
         Button(
@@ -61,6 +66,19 @@ fun TelaComprovante(
                         color = MaterialTheme.colorScheme.error
                     )
                 }
+            }
+            if (erroCriacao != null) {
+                Text(erroCriacao.orEmpty(), color = MaterialTheme.colorScheme.error)
+            }
+            Button(
+                onClick = {
+                    onCriarPedido()
+                        .onSuccess { onPedidoCriado() }
+                        .onFailure { erroCriacao = it.message ?: "Não foi possível criar o pedido." }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Criar pedido demonstrativo")
             }
         }
     }
