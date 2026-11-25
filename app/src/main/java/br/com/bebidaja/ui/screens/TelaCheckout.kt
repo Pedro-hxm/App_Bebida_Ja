@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import br.com.bebidaja.data.EnderecoEntrega
 import br.com.bebidaja.data.FormaPagamento
 import br.com.bebidaja.data.ItemCarrinho
+import br.com.bebidaja.ui.theme.CinzaTexto
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -106,7 +107,7 @@ fun TelaCheckout(
 
         Text(
             "Simulação acadêmica: nenhuma cobrança será realizada e não informe dados bancários.",
-            color = MaterialTheme.colorScheme.secondary,
+            color = CinzaTexto,
             style = MaterialTheme.typography.bodyMedium
         )
 

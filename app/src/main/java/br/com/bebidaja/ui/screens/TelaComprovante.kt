@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import br.com.bebidaja.data.FormaPagamento
 import br.com.bebidaja.data.Pedido
+import br.com.bebidaja.ui.theme.CinzaTexto
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -40,7 +41,7 @@ fun TelaComprovante(
         Text("Comprovante", style = MaterialTheme.typography.headlineMedium)
         Text(
             "Etapa demonstrativa: não envie um comprovante bancário real.",
-            color = MaterialTheme.colorScheme.secondary
+            color = CinzaTexto
         )
 
         Button(
