@@ -40,6 +40,7 @@ import br.com.bebidaja.ui.screens.EstadoCarrinhoUi
 import br.com.bebidaja.ui.screens.TelaCarrinho
 import br.com.bebidaja.ui.screens.TelaEnderecoEntrega
 import br.com.bebidaja.ui.screens.TelaCheckout
+import br.com.bebidaja.ui.screens.TelaComprovante
 
 private data class AppTab(
     val route: String,
@@ -180,7 +181,19 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
                         totalCentavos = estadoCarrinho.carrinho.totalCentavos,
                         onConfirmar = { forma: FormaPagamento ->
                             estadoCarrinho.selecionarFormaPagamento(forma)
-                        }
+                        },
+                        onIrParaComprovante = { navController.navigate("comprovante") }
+                    )
+                } else {
+                    navController.popBackStack("cart", inclusive = false)
+                }
+            }
+            composable("comprovante") {
+                val forma = estadoCarrinho.formaPagamento
+                if (forma != null && !estadoCarrinho.carrinho.estaVazio) {
+                    TelaComprovante(
+                        formaPagamento = forma,
+                        totalCentavos = estadoCarrinho.carrinho.totalCentavos
                     )
                 } else {
                     navController.popBackStack("cart", inclusive = false)

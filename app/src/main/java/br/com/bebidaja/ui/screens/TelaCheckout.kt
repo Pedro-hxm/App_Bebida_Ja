@@ -34,7 +34,8 @@ fun TelaCheckout(
     endereco: EnderecoEntrega,
     pagamentoInicial: FormaPagamento?,
     totalCentavos: Long,
-    onConfirmar: (FormaPagamento) -> Unit
+    onConfirmar: (FormaPagamento) -> Unit,
+    onIrParaComprovante: () -> Unit
 ) {
     var formaSelecionadaNome by rememberSaveable {
         mutableStateOf(pagamentoInicial?.name ?: FormaPagamento.PIX.name)
@@ -129,6 +130,14 @@ fun TelaCheckout(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Confirmar dados do checkout")
+        }
+        if (confirmado) {
+            Button(
+                onClick = onIrParaComprovante,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Continuar para comprovante demonstrativo")
+            }
         }
     }
 }
