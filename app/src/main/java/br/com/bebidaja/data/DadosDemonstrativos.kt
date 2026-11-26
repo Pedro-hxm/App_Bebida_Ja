@@ -9,6 +9,11 @@ data class DemoBeverage(
     val imageRes: Int
 )
 
+data class DemoRegion(
+    val id: String,
+    val name: String
+)
+
 data class DemoStore(
     val id: String,
     val name: String,
@@ -17,7 +22,13 @@ data class DemoStore(
     val address: String? = null,
     val phone: String? = null,
     val hours: String? = null,
-    val deliveryArea: String? = null
+    val deliveryArea: String? = null,
+    val regionId: String? = null
+)
+
+val demoRegions = listOf(
+    DemoRegion(id = "goiana-demo", name = "Goiana (demo)"),
+    DemoRegion(id = "sem-resultados-demo", name = "Sem resultados (demo)")
 )
 
 val demoCategories = listOf("Água", "Refrigerante", "Suco", "Energético")
@@ -32,14 +43,27 @@ val demoStores = listOf(
     DemoStore(
         id = "adega-central",
         name = "Adega Central",
-        description = "Goiana • Entrega em 25–40 min"
+        description = "Entrega em 25–40 min",
+        regionId = "goiana-demo"
     ),
     DemoStore(
         id = "mercadinho-do-bairro",
         name = "Mercadinho do Bairro",
-        description = "Goiana • Entrega em 30–50 min"
+        description = "Entrega em 30–50 min",
+        regionId = "goiana-demo"
     )
 )
 
 fun findDemoStoreById(storeId: String): DemoStore? =
     demoStores.firstOrNull { it.id == storeId }
+
+fun filterDemoStoresByRegion(
+    stores: List<DemoStore>,
+    regionId: String?
+): List<DemoStore> =
+    if (regionId == null) stores else stores.filter { it.regionId == regionId }
+
+fun demoStoreRegionLabel(regionId: String?): String =
+    demoRegions.firstOrNull { region -> region.id == regionId }
+        ?.let { region -> "Região: " + region.name }
+        ?: "Região não informada"

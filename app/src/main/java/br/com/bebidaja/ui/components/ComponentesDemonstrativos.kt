@@ -22,6 +22,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import br.com.bebidaja.data.DemoBeverage
 import br.com.bebidaja.data.DemoStore
+import br.com.bebidaja.data.demoStoreRegionLabel
 import br.com.bebidaja.ui.theme.AzulClaro
 import br.com.bebidaja.ui.theme.CinzaTexto
 
@@ -100,6 +101,11 @@ fun StoreCard(store: DemoStore, onClick: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(store.name, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    demoStoreRegionLabel(store.regionId),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
                 Text(store.description, color = MaterialTheme.colorScheme.onSurface)
             }
             Text(

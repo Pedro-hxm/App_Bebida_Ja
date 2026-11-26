@@ -34,7 +34,9 @@ import androidx.compose.ui.unit.dp
 import br.com.bebidaja.R
 import br.com.bebidaja.data.demoBeverages
 import br.com.bebidaja.data.demoCategories
+import br.com.bebidaja.data.demoRegions
 import br.com.bebidaja.data.demoStores
+import br.com.bebidaja.data.filterDemoStoresByRegion
 import br.com.bebidaja.ui.components.BeverageCard
 import br.com.bebidaja.ui.components.CategoryChoice
 import br.com.bebidaja.ui.components.SectionTitle
@@ -48,6 +50,8 @@ fun HomeScreen(
     onAddToCart: (br.com.bebidaja.data.DemoBeverage) -> Unit
 ) {
     var selectedCategory by rememberSaveable { mutableStateOf(demoCategories.first()) }
+    var selectedRegionId by rememberSaveable { mutableStateOf<String?>(null) }
+    val filteredStores = filterDemoStoresByRegion(demoStores, selectedRegionId)
 
     LazyColumn(
         modifier = Modifier.fillMaxWidth(),
@@ -106,9 +110,54 @@ fun HomeScreen(
                 )
             }
         }
-        item { SectionTitle("Estabelecimentos") }
-        items(demoStores, key = { it.id }) { store ->
-            StoreCard(store, onClick = { onStoreClick(store.id) })
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                SectionTitle("Estabelecimentos")
+                Text(
+                    "Filtre por região. Estabelecimentos, regiões e estimativas são demonstrativos.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    item(key = "todas-as-regioes") {
+                        CategoryChoice(
+                            label = "Todas",
+                            selected = selectedRegionId == null,
+                            onClick = { selectedRegionId = null }
+                        )
+                    }
+                    items(demoRegions, key = { it.id }) { region ->
+                        CategoryChoice(
+                            label = region.name,
+                            selected = selectedRegionId == region.id,
+                            onClick = { selectedRegionId = region.id }
+                        )
+                    }
+                }
+            }
+        }
+        if (filteredStores.isEmpty()) {
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        "Nenhum estabelecimento nesta região",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        "Não há estabelecimentos de demonstração para a região selecionada. " +
+                            "Escolha outra região ou toque em “Todas”.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        } else {
+            items(filteredStores, key = { it.id }) { store ->
+                StoreCard(store, onClick = { onStoreClick(store.id) })
+            }
         }
         item { SectionTitle("Bebidas em destaque") }
         items(demoBeverages) { beverage ->
