@@ -29,7 +29,7 @@ class PedidosTest {
     @Test
     fun criaPedidoComDadosDoCarrinhoEStatusRecebido() {
         val carrinho = criarCarrinho()
-        val repositorio = RepositorioPedidosEmMemoria()
+        val repositorio = RepositorioPedidosFake()
 
         val resultado = repositorio.confirmarPedido(
             clienteId = "cliente-teste",
@@ -53,7 +53,7 @@ class PedidosTest {
 
     @Test
     fun confirmacaoRepetidaComMesmaChaveNaoDuplicaPedido() {
-        val repositorio = RepositorioPedidosEmMemoria()
+        val repositorio = RepositorioPedidosFake()
         val carrinho = criarCarrinho()
 
         val primeiro = repositorio.confirmarPedido(
@@ -74,7 +74,7 @@ class PedidosTest {
         val carrinho = criarCarrinho().apply {
             adicionar(ProdutoCarrinho("bebida-2", "outra-empresa", "Suco", 700))
         }
-        val repositorio = RepositorioPedidosEmMemoria()
+        val repositorio = RepositorioPedidosFake()
 
         val resultado = repositorio.confirmarPedido(
             "cliente-teste", carrinho, enderecoValido, FormaPagamento.PIX,
@@ -84,4 +84,12 @@ class PedidosTest {
         assertTrue(resultado.isFailure)
         assertTrue(repositorio.listarPorCliente("cliente-teste").isEmpty())
     }
+}
+
+private class RepositorioPedidosFake : RepositorioPedidos {
+    private val pedidos = linkedMapOf<String, Pedido>()
+    override fun buscarPorChaveConfirmacao(chave: String): Pedido? = pedidos[chave]
+    override fun salvar(pedido: Pedido): Pedido = pedidos.getOrPut(pedido.chaveConfirmacao) { pedido }
+    override fun listarPorCliente(clienteId: String): List<Pedido> =
+        pedidos.values.filter { it.clienteId == clienteId }
 }

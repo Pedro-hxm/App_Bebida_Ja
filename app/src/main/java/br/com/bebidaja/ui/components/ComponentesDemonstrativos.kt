@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.ui.draw.clip
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -109,13 +110,19 @@ fun StoreCard(store: DemoStore, onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            ImagemLocal(
+                imagemPath = store.imagePath,
+                contentDescription = "Imagem de ${store.name}",
+                modifier = Modifier.size(68.dp).clip(RoundedCornerShape(12.dp)),
+                imagemResFallback = store.imageRes
+            )
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(store.name, style = MaterialTheme.typography.titleMedium)
                 Text(
-                    demoStoreRegionLabel(store.regionId),
+                    demoStoreRegionLabel(store),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )

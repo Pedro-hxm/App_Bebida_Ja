@@ -17,7 +17,9 @@ data class DemoStore(
     val phone: String? = null,
     val hours: String? = null,
     val deliveryArea: String? = null,
-    val regionId: String? = null
+    val regionId: String? = null,
+    val imagePath: String? = null,
+    val regionName: String? = null
 )
 
 val demoRegions = listOf(
@@ -65,3 +67,7 @@ fun demoStoreRegionLabel(regionId: String?): String =
     findDemoRegionName(regionId)
         ?.let { regionName -> "Região: " + regionName }
         ?: "Região não informada"
+
+fun demoStoreRegionLabel(store: DemoStore): String =
+    store.regionName?.takeIf(String::isNotBlank)?.let { "Região: $it" }
+        ?: demoStoreRegionLabel(store.regionId)

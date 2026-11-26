@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -43,6 +44,8 @@ import br.com.bebidaja.data.demoCategories
 import br.com.bebidaja.data.formatarPreco
 import br.com.bebidaja.data.validarCamposProduto
 import br.com.bebidaja.ui.components.CategoryChoice
+import br.com.bebidaja.ui.components.ImagemLocal
+import br.com.bebidaja.ui.components.SeletorImagemLocal
 import br.com.bebidaja.ui.components.SectionTitle
 import java.util.UUID
 
@@ -163,6 +166,7 @@ fun TelaGerenciamentoProdutos(
                             modifier = Modifier.padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
+                            ImagemLocal(produto.imagemPath, "Imagem de ${produto.name}", Modifier.fillMaxWidth().height(150.dp), produto.imagemRes)
                             Text(
                                 produto.nome?.takeIf(String::isNotBlank) ?: "Não informado",
                                 style = MaterialTheme.typography.titleMedium
@@ -286,6 +290,7 @@ private fun TelaFormularioProduto(
     var imagemSelecionada by rememberSaveable(produto?.id) {
         mutableIntStateOf(produto?.imagemRes ?: 0)
     }
+    var imagemPath by rememberSaveable(produto?.id) { mutableStateOf(produto?.imagemPath) }
     var erros by rememberSaveable(produto?.id) { mutableStateOf(emptySet<String>()) }
     var erroAoSalvar by rememberSaveable(produto?.id) { mutableStateOf(false) }
 
@@ -372,6 +377,7 @@ private fun TelaFormularioProduto(
         )
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Imagem (opcional)", style = MaterialTheme.typography.labelLarge)
+            SeletorImagemLocal("Escolher imagem do dispositivo", "produtos", imagemPath) { imagemPath = it }
             androidx.compose.foundation.lazy.LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -410,7 +416,8 @@ private fun TelaFormularioProduto(
                         categoria = categoria,
                         precoCentavos = converterPrecoParaCentavos(preco),
                         disponivel = produto?.disponivel ?: true,
-                        imagemRes = imagemSelecionada.takeIf { it != 0 }
+                        imagemRes = imagemSelecionada.takeIf { it != 0 },
+                        imagemPath = imagemPath
                     )
                     erros = validarCamposProduto(candidato).toSet()
                     if (erros.isEmpty()) {

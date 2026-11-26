@@ -20,7 +20,8 @@ data class ProdutoDemonstrativo(
     val categoria: String? = null,
     val precoCentavos: Long? = null,
     val disponivel: Boolean = true,
-    val imagemRes: Int? = null
+    val imagemRes: Int? = null,
+    val imagemPath: String? = null
 ) {
     // Compatibilidade temporária com o card antigo, sem manter um segundo modelo de produto.
     val name: String get() = nome?.takeIf(String::isNotBlank) ?: "Não informado"

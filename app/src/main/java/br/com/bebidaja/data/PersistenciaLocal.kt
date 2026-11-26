@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import java.io.File
 import java.util.UUID
 
 data class Empresa(
@@ -15,7 +16,8 @@ data class Empresa(
     val telefone: String,
     val horario: String,
     val areaEntrega: String,
-    val regiao: String = "Goiana"
+    val regiao: String = "Goiana",
+    val imagemPath: String? = null
 )
 
 data class ProdutoCatalogo(
@@ -27,7 +29,8 @@ data class ProdutoCatalogo(
     val precoCentavos: Long,
     val disponivel: Boolean = true,
     val volume: String = descricao,
-    val imagemRes: Int? = null
+    val imagemRes: Int? = null,
+    val imagemPath: String? = null
 )
 
 data class DadosComerciaisEmpresa(
@@ -35,7 +38,9 @@ data class DadosComerciaisEmpresa(
     val endereco: String,
     val telefone: String,
     val horario: String,
-    val areaEntrega: String
+    val areaEntrega: String,
+    val regiao: String,
+    val imagemPath: String?
 )
 
 fun Empresa.paraDemoStore() = DemoStore(
@@ -46,7 +51,9 @@ fun Empresa.paraDemoStore() = DemoStore(
     phone = telefone,
     hours = horario,
     deliveryArea = areaEntrega,
-    regionId = regiao
+    regionId = regiao,
+    imagePath = imagemPath,
+    regionName = regiao
 )
 
 fun ProdutoCatalogo.paraProdutoDemonstrativo() = ProdutoDemonstrativo(
@@ -58,7 +65,8 @@ fun ProdutoCatalogo.paraProdutoDemonstrativo() = ProdutoDemonstrativo(
     categoria = categoria,
     precoCentavos = precoCentavos,
     disponivel = disponivel,
-    imagemRes = imagemRes
+    imagemRes = imagemRes,
+    imagemPath = imagemPath
 )
 
 fun ProdutoDemonstrativo.paraProdutoLocal(): ProdutoCatalogo? {
@@ -72,17 +80,32 @@ fun ProdutoDemonstrativo.paraProdutoLocal(): ProdutoCatalogo? {
         precoCentavos = precoCentavos!!,
         disponivel = disponivel,
         volume = volume!!.trim(),
-        imagemRes = imagemRes
+        imagemRes = imagemRes,
+        imagemPath = imagemPath
     )
 }
 
 /** Banco local durável do protótipo. Não sincroniza entre dispositivos. */
 class RepositorioDadosLocais(context: Context) : RepositorioPedidos {
-    private val helper = BancoLocal(context.applicationContext)
+    private val appContext = context.applicationContext
+    private val helper = BancoLocal(appContext)
 
-    fun salvarEmpresa(empresa: Empresa) {
-        helper.writableDatabase.insertWithOnConflict(
-            "empresas", null, ContentValues().apply {
+    fun salvarEmpresa(empresa: Empresa): Boolean {
+        if (empresa.id.isBlank() || empresa.usuarioId.isBlank() || empresa.nome.isBlank() || empresa.email.isBlank() ||
+            empresa.endereco.isBlank() || empresa.telefone.filter(Char::isDigit).length < 10 || empresa.horario.isBlank() ||
+            empresa.areaEntrega.isBlank() || empresa.regiao.isBlank() || !imagemSegura(empresa.imagemPath)
+        ) return false
+        val db = helper.writableDatabase
+        db.beginTransaction()
+        try {
+            val donoDoId = db.rawQuery("SELECT usuario_id FROM empresas WHERE id = ?", arrayOf(empresa.id)).use {
+                if (it.moveToFirst()) it.getString(0) else null
+            }
+            val idDoUsuario = db.rawQuery("SELECT id FROM empresas WHERE usuario_id = ?", arrayOf(empresa.usuarioId)).use {
+                if (it.moveToFirst()) it.getString(0) else null
+            }
+            if ((donoDoId != null && donoDoId != empresa.usuarioId) || (idDoUsuario != null && idDoUsuario != empresa.id)) return false
+            val valores = ContentValues().apply {
                 put("id", empresa.id)
                 put("usuario_id", empresa.usuarioId)
                 put("nome", empresa.nome)
@@ -92,9 +115,16 @@ class RepositorioDadosLocais(context: Context) : RepositorioPedidos {
                 put("horario", empresa.horario)
                 put("area_entrega", empresa.areaEntrega)
                 put("regiao", empresa.regiao)
+                if (empresa.imagemPath == null) putNull("imagem_path") else put("imagem_path", empresa.imagemPath)
                 put("ativa", 1)
-            }, SQLiteDatabase.CONFLICT_REPLACE
-        )
+            }
+            val salvo = if (donoDoId != null) {
+                db.update("empresas", valores, "id = ? AND usuario_id = ?", arrayOf(empresa.id, empresa.usuarioId)) == 1
+            } else db.insert("empresas", null, valores) != -1L
+            if (!salvo) return false
+            db.setTransactionSuccessful()
+            return true
+        } finally { db.endTransaction() }
     }
 
     fun buscarEmpresa(id: String): Empresa? = helper.readableDatabase.rawQuery(
@@ -115,6 +145,7 @@ class RepositorioDadosLocais(context: Context) : RepositorioPedidos {
             if (cursor.moveToFirst()) cursor.getString(0) else null
         }
         if (existente != null && existente != produto.empresaId) return false
+        if (!empresaExiste(produto.empresaId) || !imagemSegura(produto.imagemPath)) return false
         val result = helper.writableDatabase.insertWithOnConflict(
             "produtos", null, ContentValues().apply {
                 put("id", produto.id)
@@ -126,6 +157,7 @@ class RepositorioDadosLocais(context: Context) : RepositorioPedidos {
                 put("disponivel", if (produto.disponivel) 1 else 0)
                 put("volume", produto.volume)
                 if (produto.imagemRes == null) putNull("imagem_res") else put("imagem_res", produto.imagemRes)
+                if (produto.imagemPath == null) putNull("imagem_path") else put("imagem_path", produto.imagemPath)
             }, SQLiteDatabase.CONFLICT_REPLACE
         )
         return result != -1L
@@ -180,38 +212,6 @@ class RepositorioDadosLocais(context: Context) : RepositorioPedidos {
         return pedido
     }
 
-    fun confirmarPedido(
-        clienteId: String,
-        carrinho: Carrinho,
-        endereco: EnderecoEntrega?,
-        formaPagamento: FormaPagamento?,
-        referenciaComprovante: String,
-        chaveConfirmacao: String,
-        criadoEmMillis: Long = System.currentTimeMillis()
-    ): Result<Pedido> {
-        if (chaveConfirmacao.isBlank()) return Result.failure(IllegalArgumentException("Confirmação inválida."))
-        buscarPorChaveConfirmacao(chaveConfirmacao)?.let { return Result.success(it) }
-        if (clienteId.isBlank() || carrinho.estaVazio || endereco?.estaValido != true || formaPagamento == null) {
-            return Result.failure(IllegalArgumentException("Dados do pedido inválidos."))
-        }
-        if (!referenciaComprovante.startsWith("DEMO-")) {
-            return Result.failure(IllegalArgumentException("O comprovante deve ser demonstrativo."))
-        }
-        val empresas = carrinho.itens.map { it.produto.empresaId }.distinct()
-        if (empresas.size != 1) return Result.failure(IllegalArgumentException("Use produtos de uma única empresa."))
-        val itens = carrinho.itens.map {
-            ItemPedido(it.produto.produtoId, it.produto.nome, it.produto.precoUnitarioCentavos, it.quantidade)
-        }
-        val subtotal = itens.sumOf { it.subtotalCentavos }
-        return runCatching { salvar(Pedido(
-            id = UUID.randomUUID().toString(), chaveConfirmacao = chaveConfirmacao,
-            clienteId = clienteId, empresaId = empresas.single(), itens = itens,
-            endereco = endereco, subtotalCentavos = subtotal, totalCentavos = subtotal,
-            formaPagamento = formaPagamento, referenciaComprovante = referenciaComprovante,
-            status = StatusPedido.RECEBIDO, criadoEmMillis = criadoEmMillis
-        )) }
-    }
-
     override fun listarPorCliente(clienteId: String): List<Pedido> = listarPedidos("cliente_id", clienteId)
 
     fun listarPorEmpresa(empresaId: String): List<Pedido> = listarPedidos("empresa_id", empresaId)
@@ -234,6 +234,19 @@ class RepositorioDadosLocais(context: Context) : RepositorioPedidos {
 
     fun fechar() = helper.close()
 
+    private fun empresaExiste(empresaId: String): Boolean = helper.readableDatabase.rawQuery(
+        "SELECT 1 FROM empresas WHERE id = ? AND ativa = 1", arrayOf(empresaId)
+    ).use { it.moveToFirst() }
+
+    private fun imagemSegura(path: String?): Boolean {
+        if (path == null) return true
+        return runCatching {
+            val raiz = File(appContext.filesDir, "imagens").canonicalFile
+            val imagem = File(path).canonicalFile
+            imagem.path.startsWith(raiz.path + File.separator) && imagem.isFile
+        }.getOrDefault(false)
+    }
+
     private fun listarPedidos(coluna: String, valor: String): List<Pedido> = helper.readableDatabase.rawQuery(
         "SELECT * FROM pedidos WHERE $coluna = ? ORDER BY criado_em DESC", arrayOf(valor)
     ).use { cursor -> buildList { while (cursor.moveToNext()) add(cursor.pedido()) } }
@@ -243,7 +256,8 @@ class RepositorioDadosLocais(context: Context) : RepositorioPedidos {
         getString(getColumnIndexOrThrow("nome")), getString(getColumnIndexOrThrow("email")),
         getString(getColumnIndexOrThrow("endereco")), getString(getColumnIndexOrThrow("telefone")),
         getString(getColumnIndexOrThrow("horario")), getString(getColumnIndexOrThrow("area_entrega")),
-        getString(getColumnIndexOrThrow("regiao"))
+        getString(getColumnIndexOrThrow("regiao")),
+        getString(getColumnIndexOrThrow("imagem_path"))
     )
 
     private fun android.database.Cursor.produto() = ProdutoCatalogo(
@@ -252,7 +266,8 @@ class RepositorioDadosLocais(context: Context) : RepositorioPedidos {
         getString(getColumnIndexOrThrow("categoria")), getLong(getColumnIndexOrThrow("preco_centavos")),
         getInt(getColumnIndexOrThrow("disponivel")) == 1,
         getString(getColumnIndexOrThrow("volume")),
-        if (isNull(getColumnIndexOrThrow("imagem_res"))) null else getInt(getColumnIndexOrThrow("imagem_res"))
+        if (isNull(getColumnIndexOrThrow("imagem_res"))) null else getInt(getColumnIndexOrThrow("imagem_res")),
+        getString(getColumnIndexOrThrow("imagem_path"))
     )
 
     private fun android.database.Cursor.pedido(): Pedido {
@@ -283,10 +298,10 @@ class RepositorioDadosLocais(context: Context) : RepositorioPedidos {
     }
 }
 
-private class BancoLocal(context: Context) : SQLiteOpenHelper(context, "bebidaja.db", null, 2) {
+private class BancoLocal(context: Context) : SQLiteOpenHelper(context, "bebidaja.db", null, 3) {
     override fun onCreate(db: SQLiteDatabase) {
-        db.execSQL("CREATE TABLE empresas (id TEXT PRIMARY KEY, usuario_id TEXT NOT NULL UNIQUE, nome TEXT NOT NULL, email TEXT NOT NULL, endereco TEXT NOT NULL, telefone TEXT NOT NULL, horario TEXT NOT NULL, area_entrega TEXT NOT NULL, regiao TEXT NOT NULL, ativa INTEGER NOT NULL DEFAULT 1)")
-        db.execSQL("CREATE TABLE produtos (id TEXT PRIMARY KEY, empresa_id TEXT NOT NULL, nome TEXT NOT NULL, descricao TEXT NOT NULL, volume TEXT NOT NULL DEFAULT '', categoria TEXT NOT NULL, preco_centavos INTEGER NOT NULL CHECK(preco_centavos >= 0), disponivel INTEGER NOT NULL DEFAULT 1, imagem_res INTEGER, FOREIGN KEY(empresa_id) REFERENCES empresas(id))")
+        db.execSQL("CREATE TABLE empresas (id TEXT PRIMARY KEY, usuario_id TEXT NOT NULL UNIQUE, nome TEXT NOT NULL, email TEXT NOT NULL, endereco TEXT NOT NULL, telefone TEXT NOT NULL, horario TEXT NOT NULL, area_entrega TEXT NOT NULL, regiao TEXT NOT NULL, ativa INTEGER NOT NULL DEFAULT 1, imagem_path TEXT)")
+        db.execSQL("CREATE TABLE produtos (id TEXT PRIMARY KEY, empresa_id TEXT NOT NULL, nome TEXT NOT NULL, descricao TEXT NOT NULL, volume TEXT NOT NULL DEFAULT '', categoria TEXT NOT NULL, preco_centavos INTEGER NOT NULL CHECK(preco_centavos >= 0), disponivel INTEGER NOT NULL DEFAULT 1, imagem_res INTEGER, imagem_path TEXT, FOREIGN KEY(empresa_id) REFERENCES empresas(id))")
         db.execSQL("CREATE INDEX produtos_empresa_idx ON produtos(empresa_id)")
         db.execSQL("CREATE TABLE pedidos (id TEXT PRIMARY KEY, chave TEXT NOT NULL UNIQUE, cliente_id TEXT NOT NULL, empresa_id TEXT NOT NULL, rua TEXT NOT NULL, numero TEXT NOT NULL, bairro TEXT NOT NULL, cidade TEXT NOT NULL, cep TEXT NOT NULL, complemento TEXT NOT NULL, subtotal INTEGER NOT NULL, total INTEGER NOT NULL, pagamento TEXT NOT NULL, comprovante TEXT NOT NULL, status TEXT NOT NULL, criado_em INTEGER NOT NULL)")
         db.execSQL("CREATE INDEX pedidos_cliente_idx ON pedidos(cliente_id, criado_em DESC)")
@@ -299,6 +314,10 @@ private class BancoLocal(context: Context) : SQLiteOpenHelper(context, "bebidaja
         if (oldVersion < 2) {
             db.execSQL("ALTER TABLE produtos ADD COLUMN volume TEXT NOT NULL DEFAULT ''")
             db.execSQL("ALTER TABLE produtos ADD COLUMN imagem_res INTEGER")
+        }
+        if (oldVersion < 3) {
+            db.execSQL("ALTER TABLE empresas ADD COLUMN imagem_path TEXT")
+            db.execSQL("ALTER TABLE produtos ADD COLUMN imagem_path TEXT")
         }
     }
 
