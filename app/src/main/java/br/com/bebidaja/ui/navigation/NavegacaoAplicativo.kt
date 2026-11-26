@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,6 +21,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import com.google.firebase.auth.FirebaseAuth
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -44,6 +46,10 @@ import br.com.bebidaja.ui.screens.TelaCarrinho
 import br.com.bebidaja.ui.screens.TelaEnderecoEntrega
 import br.com.bebidaja.ui.screens.TelaCheckout
 import br.com.bebidaja.ui.screens.TelaComprovante
+import br.com.bebidaja.ui.theme.AzulClaro
+import br.com.bebidaja.ui.theme.AzulEscuro
+import br.com.bebidaja.ui.theme.AzulMedio
+import br.com.bebidaja.ui.theme.Branco
 
 private data class AppTab(
     val route: String,
@@ -102,13 +108,20 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
     Scaffold(
         bottomBar = {
             if (tabs.any { it.route == currentRoute }) {
-                NavigationBar {
+                NavigationBar(containerColor = Branco, tonalElevation = 0.dp) {
                     tabs.forEach { tab ->
                         NavigationBarItem(
                             selected = currentRoute == tab.route,
                             onClick = { navController.openTab(tab.route) },
                             icon = { Icon(tab.icon, contentDescription = tab.label) },
-                            label = { Text(tab.label) }
+                            label = { Text(tab.label) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = AzulEscuro,
+                                selectedTextColor = AzulEscuro,
+                                indicatorColor = AzulClaro,
+                                unselectedIconColor = AzulMedio,
+                                unselectedTextColor = AzulMedio
+                            )
                         )
                     }
                 }
