@@ -1,13 +1,19 @@
 package br.com.bebidaja.ui.navigation
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -73,8 +79,7 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
 
     val tabs = listOf(
         AppTab("home", "Início", Icons.Filled.Home),
-        AppTab("search", "Buscar", Icons.Filled.Search),
-        AppTab("cart", "Carrinho", Icons.Filled.ShoppingCart),
+        AppTab("search", "Pesquisa", Icons.Filled.Search),
         AppTab("orders", "Pedidos", Icons.AutoMirrored.Filled.List),
         AppTab("profile", "Perfil", Icons.Filled.Person)
     )
@@ -106,8 +111,30 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
     }
 
     Scaffold(
-        bottomBar = {
+        topBar = {
             if (tabs.any { it.route == currentRoute }) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(end = 8.dp),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    FilledTonalIconButton(
+                        onClick = { navController.navigate("cart") { launchSingleTop = true } },
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = AzulClaro,
+                            contentColor = AzulEscuro
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.ShoppingCart,
+                            contentDescription = "Carrinho",
+                            tint = AzulEscuro
+                        )
+                    }
+                }
+            }
+        },
+        bottomBar = {
+            if (tabs.any { it.route == currentRoute } || currentRoute == "cart") {
                 NavigationBar(containerColor = Branco, tonalElevation = 0.dp) {
                     tabs.forEach { tab ->
                         NavigationBarItem(
