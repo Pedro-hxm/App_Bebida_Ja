@@ -46,12 +46,12 @@ data class DadosComerciaisEmpresa(
 fun Empresa.paraDemoStore() = DemoStore(
     id = id,
     name = nome,
-    description = "Entrega em Goiana",
+    description = areaEntrega.trim().ifBlank { "Área de entrega não informada" },
     address = endereco,
     phone = telefone,
     hours = horario,
     deliveryArea = areaEntrega,
-    regionId = regiao,
+    regionId = resolverIdRegiao(regiao),
     imagePath = imagemPath,
     regionName = regiao
 )

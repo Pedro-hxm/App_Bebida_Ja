@@ -33,6 +33,8 @@ import br.com.bebidaja.R
 import br.com.bebidaja.data.Empresa
 import br.com.bebidaja.data.ProdutoCatalogo
 import br.com.bebidaja.data.demoCategories
+import br.com.bebidaja.data.filtrarEmpresasPorRegiao
+import br.com.bebidaja.data.listarRegioesPersistidas
 import br.com.bebidaja.data.paraDemoStore
 import br.com.bebidaja.data.paraProdutoDemonstrativo
 import br.com.bebidaja.ui.components.CardProduto
@@ -52,12 +54,14 @@ fun HomeScreen(
 ) {
     var categoriaSelecionada by rememberSaveable { mutableStateOf<String?>(null) }
     var regiaoSelecionada by rememberSaveable { mutableStateOf<String?>(null) }
-    val filtradas = empresas.filter { regiaoSelecionada == null || it.regiao == regiaoSelecionada }
+    val regioes = listarRegioesPersistidas(empresas)
+    val filtradas = filtrarEmpresasPorRegiao(empresas, regiaoSelecionada)
     val idsPermitidos = filtradas.mapTo(mutableSetOf()) { it.id }
     val produtosFiltrados = produtos.filter {
-        it.disponivel && it.empresaId in idsPermitidos && (categoriaSelecionada == null || it.categoria == categoriaSelecionada)
+        it.disponivel &&
+            it.empresaId in idsPermitidos &&
+            (categoriaSelecionada == null || it.categoria == categoriaSelecionada)
     }
-    val regioes = empresas.map { it.regiao }.distinct().sorted()
 
     LazyColumn(Modifier.fillMaxWidth(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         item {
@@ -95,7 +99,15 @@ fun HomeScreen(
                 SectionTitle("Estabelecimentos")
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     item { CategoryChoice("Todas as regiões", regiaoSelecionada == null) { regiaoSelecionada = null } }
-                    items(regioes, key = { it }) { regiao -> CategoryChoice(regiao, regiaoSelecionada == regiao) { regiaoSelecionada = regiao } }
+                    items(regioes, key = { it.id }) { regiao ->
+                        CategoryChoice(
+                            regiao.nome,
+                            regiaoSelecionada == regiao.id
+                        ) {
+                            regiaoSelecionada =
+                                if (regiaoSelecionada == regiao.id) null else regiao.id
+                        }
+                    }
                 }
             }
         }

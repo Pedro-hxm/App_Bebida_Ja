@@ -1,6 +1,8 @@
 package br.com.bebidaja.data
 
-/** Alias temporário para o modelo estruturado do catálogo demonstrativo. */
+import java.util.Locale
+
+/** Compatibilidade de apresentação para os componentes de produto já existentes. */
 typealias DemoBeverage = ProdutoDemonstrativo
 
 data class DemoRegion(
@@ -8,6 +10,12 @@ data class DemoRegion(
     val name: String
 )
 
+data class RegiaoPersistida(
+    val id: String,
+    val nome: String
+)
+
+/** Adaptador de apresentação; os estabelecimentos vêm de RepositorioDadosLocais. */
 data class DemoStore(
     val id: String,
     val name: String,
@@ -23,7 +31,7 @@ data class DemoStore(
 )
 
 val demoRegions = listOf(
-    DemoRegion(id = "goiana-demo", name = "Goiana (demo)")
+    DemoRegion(id = "goiana", name = "Goiana")
 )
 
 val demoCategories = listOf(
@@ -36,36 +44,53 @@ val demoCategories = listOf(
     "Outros"
 )
 
-val demoStores = listOf(
-    DemoStore(
-        id = "adega-central",
-        name = "Adega Central",
-        description = "Entrega em 25–40 min",
-        regionId = "goiana-demo"
-    ),
-    DemoStore(
-        id = "mercadinho-do-bairro",
-        name = "Mercadinho do Bairro",
-        description = "Entrega em 30–50 min",
-        regionId = "goiana-demo"
-    )
-)
+private fun chaveRegiao(valor: String?): String? {
+    val normalizado = valor?.trim()?.takeIf(String::isNotBlank) ?: return null
+    return normalizarTextoPesquisa(normalizado)
+        .replace("\\s*\\(demo\\)$".toRegex(), "")
+        .replace("-demo$".toRegex(), "")
+        .replace("[^a-z0-9]+".toRegex(), "-")
+        .trim('-')
+        .takeIf(String::isNotBlank)
+}
 
-fun findDemoStoreById(storeId: String): DemoStore? =
-    demoStores.firstOrNull { it.id == storeId }
+fun resolverIdRegiao(nomeRegiao: String?): String? {
+    val nome = nomeRegiao?.trim()?.takeIf(String::isNotBlank) ?: return null
+    val chave = chaveRegiao(nome) ?: return nome
+    return demoRegions.firstOrNull { regiao ->
+        chaveRegiao(regiao.id) == chave || chaveRegiao(regiao.name) == chave
+    }?.id ?: nome
+}
 
-fun filterDemoStoresByRegion(
-    stores: List<DemoStore>,
-    regionId: String?
-): List<DemoStore> =
-    if (regionId == null) stores else stores.filter { it.regionId == regionId }
+fun listarRegioesPersistidas(empresas: List<Empresa>): List<RegiaoPersistida> {
+    val regioes = linkedMapOf<String, RegiaoPersistida>()
+    empresas.forEach { empresa ->
+        val nome = empresa.regiao.trim().takeIf(String::isNotBlank) ?: return@forEach
+        val id = resolverIdRegiao(nome) ?: return@forEach
+        val chave = chaveRegiao(id) ?: return@forEach
+        regioes.putIfAbsent(chave, RegiaoPersistida(id, nome))
+    }
+    return regioes.values.sortedBy { it.nome.lowercase(Locale.ROOT) }
+}
 
-fun findDemoRegionName(regionId: String?): String? =
-    demoRegions.firstOrNull { region -> region.id == regionId }?.name
+fun filtrarEmpresasPorRegiao(
+    empresas: List<Empresa>,
+    regiaoId: String?
+): List<Empresa> {
+    val chaveSelecionada = chaveRegiao(regiaoId) ?: return empresas
+    return empresas.filter { chaveRegiao(it.regiao) == chaveSelecionada }
+}
+
+fun findDemoRegionName(regionId: String?): String? {
+    val chave = chaveRegiao(regionId) ?: return null
+    return demoRegions.firstOrNull { regiao ->
+        chaveRegiao(regiao.id) == chave || chaveRegiao(regiao.name) == chave
+    }?.name ?: regionId?.trim()?.takeIf(String::isNotBlank)
+}
 
 fun demoStoreRegionLabel(regionId: String?): String =
     findDemoRegionName(regionId)
-        ?.let { regionName -> "Região: " + regionName }
+        ?.let { regionName -> "Região: $regionName" }
         ?: "Região não informada"
 
 fun demoStoreRegionLabel(store: DemoStore): String =

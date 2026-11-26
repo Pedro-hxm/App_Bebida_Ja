@@ -79,7 +79,7 @@ fun TelaCatalogoEmpresa(
         }
         item {
             Text(
-                "Catálogo, preços e disponibilidade demonstrativos. Os dados ficam apenas nesta sessão.",
+                "Os registros iniciais são demonstrativos; as alterações ficam salvas localmente neste dispositivo.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -171,7 +171,9 @@ fun TelaDetalhesProduto(
             produto.nome?.takeIf(String::isNotBlank) ?: "Não informado",
             style = MaterialTheme.typography.headlineSmall
         )
-        Text("Estabelecimento: ${empresa?.name ?: "Não informado"}")
+        Text(
+            "Estabelecimento: ${empresa?.name?.takeIf(String::isNotBlank) ?: "Não informado"}"
+        )
         Text("Volume: ${produto.volume?.takeIf(String::isNotBlank) ?: "Não informado"}")
         Text("Categoria: ${produto.categoria?.takeIf(String::isNotBlank) ?: "Não informado"}")
         Text(
@@ -185,7 +187,7 @@ fun TelaDetalhesProduto(
         )
         produto.descricao?.takeIf(String::isNotBlank)?.let { Text(it) }
         Text(
-            "Informações demonstrativas. A disponibilidade definitiva depende da integração comercial.",
+            "Os registros iniciais são demonstrativos. Os dados ficam salvos localmente neste dispositivo.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -197,13 +199,15 @@ fun TelaDetalhesProduto(
                     "O carrinho aceita itens de um estabelecimento por pedido."
                 }
             },
-            enabled = produto.disponivel &&
+            enabled = empresa != null &&
+                produto.disponivel &&
                 produto.precoCentavos != null &&
                 produto.precoCentavos > 0,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
                 when {
+                    empresa == null -> "Estabelecimento não encontrado"
                     !produto.disponivel -> "Produto indisponível"
                     produto.precoCentavos == null || produto.precoCentavos <= 0 ->
                         "Preço não informado"
@@ -256,7 +260,7 @@ fun TelaPesquisaCatalogo(
         item {
             Text("Buscar bebidas", style = MaterialTheme.typography.headlineMedium)
             Text(
-                "Pesquise por bebida, categoria ou estabelecimento. Resultados demonstrativos.",
+                "A busca consulta o catálogo salvo neste dispositivo. Os registros iniciais são demonstrativos.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

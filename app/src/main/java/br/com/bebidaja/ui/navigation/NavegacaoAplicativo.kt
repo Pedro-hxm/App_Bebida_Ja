@@ -47,9 +47,6 @@ import br.com.bebidaja.data.ProdutoCatalogo
 import br.com.bebidaja.data.RepositorioAutenticacaoFirebase
 import br.com.bebidaja.data.RepositorioDadosLocais
 import br.com.bebidaja.data.TipoPerfil
-import br.com.bebidaja.data.demoCategories
-import br.com.bebidaja.data.demoStores
-import br.com.bebidaja.data.findDemoStoreById
 import br.com.bebidaja.data.mapearProdutoParaCarrinho
 import br.com.bebidaja.data.podeAdicionarAoCarrinho
 import br.com.bebidaja.data.paraDemoStore
@@ -110,13 +107,22 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
         repositorio.empresaDoUsuario(uidAtual) ?: idEmpresa?.let(repositorio::buscarEmpresa)
     } else idEmpresa?.let(repositorio::buscarEmpresa)
     val empresaAtualFinal = empresaAtual ?: if (tipoPerfilAtual == TipoPerfil.EMPRESA && uidAtual != null) {
-        Empresa(uidAtual, uidAtual, FirebaseAuth.getInstance().currentUser?.displayName.orEmpty(), FirebaseAuth.getInstance().currentUser?.email.orEmpty(), "", "", "", "")
+        Empresa(
+            id = uidAtual,
+            usuarioId = uidAtual,
+            nome = FirebaseAuth.getInstance().currentUser?.displayName.orEmpty(),
+            email = FirebaseAuth.getInstance().currentUser?.email.orEmpty(),
+            endereco = "",
+            telefone = "",
+            horario = "",
+            areaEntrega = ""
+        )
     } else null
     val listaEmpresas = remember(dadosAlterados) { repositorio.listarEmpresas() }
     val listaProdutos = remember(dadosAlterados) { repositorio.listarProdutos() }
     val produtosDemonstrativos = remember(listaProdutos) { listaProdutos.map(ProdutoCatalogo::paraProdutoDemonstrativo) }
     val empresasDemonstrativas = remember(listaEmpresas) { listaEmpresas.map(Empresa::paraDemoStore) }
-    val empresaIdGerenciada = if (isBusiness) empresaAtual?.id else null
+    val empresaIdGerenciada = if (isBusiness) empresaAtualFinal?.id else null
     val podeGerenciarProdutos = empresaIdGerenciada != null
 
     fun sairDaDemonstracao() {
@@ -202,8 +208,13 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
         }
     }
     fun adicionarAoCarrinho(produto: br.com.bebidaja.data.ProdutoDemonstrativo): Boolean {
-        if (!podeAdicionarAoCarrinho(produto, estadoCarrinho.carrinho)) {
-            Toast.makeText(contexto, "Escolha produtos de uma única empresa e verifique a disponibilidade.", Toast.LENGTH_SHORT).show()
+        val empresaExiste = repositorio.buscarEmpresa(produto.empresaId) != null
+        if (!empresaExiste || !podeAdicionarAoCarrinho(produto, estadoCarrinho.carrinho)) {
+            Toast.makeText(
+                contexto,
+                "O produto precisa estar disponível e vinculado a um estabelecimento válido.",
+                Toast.LENGTH_SHORT
+            ).show()
             return false
         }
         val item = mapearProdutoParaCarrinho(produto) ?: return false

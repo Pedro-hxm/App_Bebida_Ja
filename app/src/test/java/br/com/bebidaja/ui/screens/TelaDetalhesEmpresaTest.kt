@@ -1,40 +1,48 @@
 package br.com.bebidaja.ui.screens
 
-import br.com.bebidaja.data.demoStores
-import br.com.bebidaja.data.findDemoStoreById
+import br.com.bebidaja.data.Empresa
+import br.com.bebidaja.data.paraDemoStore
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertSame
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TelaDetalhesEmpresaTest {
     @Test
-    fun demoStoresHaveStableUniqueIds() {
-        val ids = demoStores.map { it.id }
-
-        assertTrue(ids.all(String::isNotBlank))
-        assertEquals(ids.size, ids.toSet().size)
-    }
-
-    @Test
-    fun findDemoStoreByIdReturnsMatchingStore() {
-        demoStores.forEach { store ->
-            assertSame(store, findDemoStoreById(store.id))
-        }
-    }
-
-    @Test
-    fun findDemoStoreByIdReturnsNullForUnknownId() {
-        assertNull(findDemoStoreById("empresa-inexistente"))
-    }
-
-    @Test
     fun missingOrBlankCompanyFieldsUseFallbackLabel() {
         assertEquals("Não informado", formatarCampoEmpresa(null))
+        assertEquals("Não informado", formatarCampoEmpresa(""))
         assertEquals("Não informado", formatarCampoEmpresa("   "))
-        assertFalse(formatarCampoEmpresa("Goiana").isBlank())
-        assertEquals("Goiana", formatarCampoEmpresa("Goiana"))
+        assertEquals("Goiana", formatarCampoEmpresa(" Goiana "))
+    }
+
+    @Test
+    fun persistedCompanyDetailsKeepIdentityAndCommercialFieldsInPresentationAdapter() {
+        val empresa = Empresa(
+            id = "adega-central",
+            usuarioId = "demo-company",
+            nome = "Adega Central",
+            email = "empresa@demonstracao.com",
+            endereco = "Centro, Goiana - PE",
+            telefone = "(81) 99999-1001",
+            horario = "Todos os dias, 16h às 23h",
+            areaEntrega = "Goiana e bairros próximos",
+            regiao = "Goiana"
+        )
+
+        val detalhes = empresa.paraDemoStore()
+
+        assertEquals(empresa.id, detalhes.id)
+        assertEquals(empresa.nome, detalhes.name)
+        assertEquals(empresa.endereco, detalhes.address)
+        assertEquals(empresa.telefone, detalhes.phone)
+        assertEquals(empresa.horario, detalhes.hours)
+        assertEquals(empresa.areaEntrega, detalhes.deliveryArea)
+        assertEquals("goiana", detalhes.regionId)
+        assertNull(detalhes.imageRes)
+    }
+
+    @Test
+    fun blankPersistedCompanyFieldsAreDisplayedAsNotInformed() {
+        assertEquals("Não informado", formatarCampoEmpresa(" "))
     }
 }

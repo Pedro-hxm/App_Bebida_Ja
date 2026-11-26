@@ -156,7 +156,7 @@ fun TelaGerenciamentoProdutos(
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         SectionTitle("Nenhuma bebida cadastrada")
-                        Text("Cadastre um produto para exibi-lo no catálogo demonstrativo.")
+                        Text("Cadastre um produto para exibi-lo no catálogo salvo neste dispositivo.")
                     }
                 }
             } else {
@@ -222,7 +222,7 @@ fun TelaGerenciamentoProdutos(
             if (empresa == null) {
                 item {
                     Text(
-                        "Este perfil ainda não possui dados comerciais integrados. O catálogo é temporário.",
+                        "Não foi possível carregar os dados comerciais deste estabelecimento.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -237,7 +237,7 @@ fun TelaGerenciamentoProdutos(
             title = { Text("Remover bebida?") },
             text = {
                 Text(
-                    "A bebida será removida do catálogo demonstrativo desta sessão. " +
+                    "A bebida será removida do catálogo salvo neste dispositivo. " +
                         "Esta ação não pode ser desfeita."
                 )
             },
@@ -246,7 +246,7 @@ fun TelaGerenciamentoProdutos(
                     onClick = {
                         val removido = onRemoverProduto(produto.id, produto.empresaId)
                         mensagem = if (removido) {
-                            "Produto removido do catálogo demonstrativo."
+                            "Produto removido do catálogo local."
                         } else {
                             "Não foi possível remover o produto."
                         }
