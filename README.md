@@ -6,7 +6,7 @@
 
 <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-Android-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white">
 <img alt="Plataforma" src="https://img.shields.io/badge/Plataforma-Android-3DDC84?style=for-the-badge&logo=android&logoColor=111111">
-<img alt="Etapa" src="https://img.shields.io/badge/Etapa-Base%20visual%20inicial-1F4E78?style=flat-square">
+<img alt="Etapa" src="https://img.shields.io/badge/Etapa-Modelos%20e%20persist%C3%AAncia%20local-1F4E78?style=flat-square">
 
 **UNIPÊ · Desenvolvimento Mobile · Professor Leandro Melo · Turno da noite**
 
@@ -166,9 +166,9 @@ As categorias de referência incluem **Água, Refrigerante, Suco, Energético, C
 
 ## Como executar
 
-A base visual inicial usa Kotlin, Jetpack Compose e Material 3. Ela apresenta navegação e telas demonstrativas; cadastro, login, busca funcional, persistência e pedidos ainda não foram implementados.
+Esta branch integra cadastro comercial de empresas e persistência SQLite local para empresas, produtos e pedidos. A Home, busca, perfis e painéis usam os dados persistidos. Consulte o [estado atual do produto](./docs/produto/estado-atual.md) para conhecer os limites da sincronização e dos fluxos demonstrativos.
 
-> Requisitos: Android Studio, Android SDK Platform 37 e JDK 17 ou superior. Na primeira sincronização, o Gradle baixa a distribuição e as dependências.
+> Requisitos: Android Studio, Android SDK Platform 37 e JDK 17 ou superior. Na primeira sincronização, o Gradle baixa as dependências.
 
 1. Clone o repositório:
 
@@ -177,10 +177,9 @@ A base visual inicial usa Kotlin, Jetpack Compose e Material 3. Ela apresenta na
    cd App_Bebida_Ja
    ```
 
-2. Abra no **Android Studio** a pasta do projeto que contém `settings.gradle` ou `settings.gradle.kts`.
-3. Aguarde a sincronização do **Gradle**.
-4. Selecione a configuração `app` e execute em um emulador ou aparelho Android compatível.
-5. Consulte o [passo a passo de sincronização e emulação](./docs/COMO_EXECUTAR.md).
+2. Abra a raiz do projeto no Android Studio e aguarde a sincronização do Gradle.
+3. Selecione a configuração `app` e execute em um emulador ou aparelho Android compatível.
+4. Consulte o [passo a passo de sincronização e emulação](./docs/COMO_EXECUTAR.md).
 
 Não publique `local.properties`, tokens, chaves de API, senhas ou dados sensíveis no repositório.
 

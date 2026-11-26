@@ -1,15 +1,17 @@
-# Decisões técnicas da base
+# Decisões técnicas da branch
 
 ## Interface
 
-Foi escolhido Jetpack Compose com Material 3 para construir a interface em Kotlin e permitir que o grupo evolua as telas no Android Studio. A navegação entre telas usa Navigation Compose.
+O aplicativo usa Jetpack Compose com Material 3 e Navigation Compose.
 
 ## Ambiente
 
-A configuração inicial usa Android Gradle Plugin 9.2.0, Kotlin integrado ao plugin Android com o compilador Compose 2.2.10, Gradle 9.4.1, SDK 37 e Java 17. O SDK mínimo definido é 24.
+A configuração usa Android Gradle Plugin 9.2.0, Kotlin com compilador Compose, Gradle 9.4.1, SDK 37 e Java 17. O SDK mínimo é 24.
 
-Na primeira sincronização, o Gradle pode precisar baixar a distribuição e dependências. O projeto não inclui credenciais nem configuração local do Android SDK.
+## Persistência e autenticação
 
-## Limites
+Empresas, catálogo, pedidos e itens de pedido usam SQLite por meio de `SQLiteOpenHelper`. A escolha dá persistência durável no aparelho sem adicionar dependências. Os itens do pedido são snapshots para preservar nome e preço no histórico. A transição de status é sequencial e vinculada ao identificador da empresa.
 
-Os dados de exemplo ficam em memória no código. Esta escolha mantém a base pequena e não define a persistência do produto final. Room, API, Firebase, autenticação real e pagamentos não foram configurados.
+Firebase Authentication continua responsável pelas contas quando `google-services.json` está configurado. O documento Firestore guarda nome, e-mail e tipo de perfil. Dados comerciais, produtos e pedidos permanecem no SQLite local; esta implementação não sincroniza aparelhos.
+
+Pagamento e comprovante seguem demonstrativos. Não há cobrança real, upload de arquivo nem servidor de catálogo/pedidos nesta branch.

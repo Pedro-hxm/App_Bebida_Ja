@@ -2,11 +2,11 @@
 
 O aplicativo é nativo para Android e usa Kotlin, Jetpack Compose e Material 3.
 
-- MainActivity inicia o tema e a navegação.
-- ui/theme guarda as cores e o tema visual.
-- ui/navigation define as rotas entre as telas.
-- ui/screens contém a abertura, a tela inicial e as telas demonstrativas.
-- ui/components reúne cartões, títulos e seletores reutilizados.
-- data contém apenas os dados estáticos da demonstração.
+- `AtividadePrincipal` inicializa o Firebase quando configurado e inicia a navegação.
+- `ui/navigation` controla as sessões de cliente/empresa, as rotas e as permissões de cada perfil.
+- `ui/screens` contém as jornadas de cadastro, Home, busca, detalhes, carrinho, checkout, perfil, painel comercial e pedidos.
+- `data/PersistenciaLocal.kt` define os modelos comerciais e usa SQLite para empresas, produtos, pedidos e itens de pedido.
+- `data/RepositorioPedidos.kt` declara o contrato de consulta e gravação dos pedidos.
+- Firebase Authentication mantém a autenticação de contas. O documento `usuarios/{uid}` registra nome, e-mail e tipo de perfil.
 
-As telas de busca, pedidos, perfil e empresa são pontos de partida visuais. Os dados não são compartilhados entre dispositivos e não existe servidor nesta base.
+O banco `bebidaja.db` persiste os dados no aparelho. Pedidos guardam snapshots dos produtos para preservar nome e preço mesmo quando o catálogo muda. A atualização de status verifica a empresa proprietária e aceita somente a próxima etapa do fluxo. A implementação é local e não sincroniza com outros dispositivos.
