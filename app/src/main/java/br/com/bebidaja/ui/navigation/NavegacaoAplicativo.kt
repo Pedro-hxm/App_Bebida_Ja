@@ -1,5 +1,6 @@
 package br.com.bebidaja.ui.navigation
 
+import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -36,6 +37,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import br.com.bebidaja.data.RepositorioAutenticacaoFirebase
+import br.com.bebidaja.data.findDemoStoreById
 import br.com.bebidaja.data.RepositorioPedidosEmMemoria
 import br.com.bebidaja.data.EnderecoEntrega
 import br.com.bebidaja.data.FormaPagamento
@@ -43,6 +45,7 @@ import br.com.bebidaja.data.ProdutoCarrinho
 import br.com.bebidaja.data.TipoPerfil
 import br.com.bebidaja.ui.screens.CompanyScreen
 import br.com.bebidaja.ui.screens.HomeScreen
+import br.com.bebidaja.ui.screens.TelaDetalhesEmpresa
 import br.com.bebidaja.ui.screens.LoginScreen
 import br.com.bebidaja.ui.screens.OrdersScreen
 import br.com.bebidaja.ui.screens.ProfileScreen
@@ -235,6 +238,9 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
             composable("home") {
                 HomeScreen(
                     onSearchClick = { navController.openTab("search") },
+                    onStoreClick = { storeId ->
+                        navController.navigate("empresa/${Uri.encode(storeId)}")
+                    },
                     onAddToCart = { bebida ->
                         val centavos = bebida.price.filter(Char::isDigit).toLongOrNull() ?: 0L
                         estadoCarrinho.adicionar(
@@ -246,6 +252,14 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
                             )
                         )
                     }
+                )
+            }
+            composable("empresa/{empresaId}") { backStackEntry ->
+                val empresa = backStackEntry.arguments?.getString("empresaId")
+                    ?.let { findDemoStoreById(it) }
+                TelaDetalhesEmpresa(
+                    empresa = empresa,
+                    onVoltar = { navController.popBackStack() }
                 )
             }
             composable("search") { SearchScreen() }
