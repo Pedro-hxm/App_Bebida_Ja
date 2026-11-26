@@ -2,6 +2,7 @@ package br.com.bebidaja.data
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -35,8 +36,17 @@ class HomeEmpresasTest {
     }
 
     @Test
-    fun regionWithoutStoresReturnsEmptyList() {
-        assertTrue(filterDemoStoresByRegion(demoStores, "sem-resultados-demo").isEmpty())
+    fun unknownRegionReturnsEmptyList() {
+        assertTrue(
+            filterDemoStoresByRegion(demoStores, "regiao-nao-cadastrada").isEmpty()
+        )
+    }
+
+    @Test
+    fun regionNameLookupReturnsNullForMissingOrUnknownIds() {
+        assertEquals("Goiana (demo)", findDemoRegionName("goiana-demo"))
+        assertNull(findDemoRegionName(null))
+        assertNull(findDemoRegionName("regiao-nao-cadastrada"))
     }
 
     @Test

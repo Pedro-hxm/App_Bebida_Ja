@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -26,8 +27,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import br.com.bebidaja.data.DemoStore
+import br.com.bebidaja.data.findDemoRegionName
+import br.com.bebidaja.ui.theme.AzulClaro
 
 @Composable
 fun TelaDetalhesEmpresa(
@@ -50,7 +54,10 @@ fun TelaDetalhesEmpresa(
             }
             Text(
                 text = empresa?.name ?: "Estabelecimento não encontrado",
-                style = MaterialTheme.typography.titleLarge
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.titleLarge,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
         }
 
@@ -62,16 +69,32 @@ fun TelaDetalhesEmpresa(
         } else {
             ImagemEmpresa(empresa)
             Text(
-                text = empresa.description,
-                style = MaterialTheme.typography.bodyLarge,
+                text = "Dados comerciais e estimativas apresentados são demonstrativos.",
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Text("Informações comerciais", style = MaterialTheme.typography.titleMedium)
-            Card(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = empresa.description,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = "Informações comerciais",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = AzulClaro)
+            ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    CampoInformacaoEmpresa(
+                        "Região",
+                        formatarCampoEmpresa(findDemoRegionName(empresa.regionId))
+                    )
                     CampoInformacaoEmpresa("Endereço", formatarCampoEmpresa(empresa.address))
                     CampoInformacaoEmpresa("Telefone", formatarCampoEmpresa(empresa.phone))
                     CampoInformacaoEmpresa("Horário", formatarCampoEmpresa(empresa.hours))

@@ -27,8 +27,7 @@ data class DemoStore(
 )
 
 val demoRegions = listOf(
-    DemoRegion(id = "goiana-demo", name = "Goiana (demo)"),
-    DemoRegion(id = "sem-resultados-demo", name = "Sem resultados (demo)")
+    DemoRegion(id = "goiana-demo", name = "Goiana (demo)")
 )
 
 val demoCategories = listOf("Água", "Refrigerante", "Suco", "Energético")
@@ -63,7 +62,10 @@ fun filterDemoStoresByRegion(
 ): List<DemoStore> =
     if (regionId == null) stores else stores.filter { it.regionId == regionId }
 
+fun findDemoRegionName(regionId: String?): String? =
+    demoRegions.firstOrNull { region -> region.id == regionId }?.name
+
 fun demoStoreRegionLabel(regionId: String?): String =
-    demoRegions.firstOrNull { region -> region.id == regionId }
-        ?.let { region -> "Região: " + region.name }
+    findDemoRegionName(regionId)
+        ?.let { regionName -> "Região: " + regionName }
         ?: "Região não informada"
