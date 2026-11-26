@@ -30,112 +30,39 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import br.com.bebidaja.R
+import br.com.bebidaja.data.DadosComerciaisEmpresa
 import br.com.bebidaja.data.PerfilIncompletoException
 import br.com.bebidaja.data.RepositorioAutenticacaoFirebase
 import br.com.bebidaja.data.TipoPerfil
 
 @Composable
-fun LoginScreen(
-    firebaseDisponivel: Boolean,
-    onRegisterClick: () -> Unit,
-    onExploreClick: () -> Unit,
-    onLoginSuccess: (TipoPerfil) -> Unit
-) {
+fun LoginScreen(firebaseDisponivel: Boolean, onRegisterClick: () -> Unit, onExploreClick: () -> Unit, onLoginSuccess: (TipoPerfil) -> Unit) {
     var email by rememberSaveable { mutableStateOf("") }
     var senha by rememberSaveable { mutableStateOf("") }
     var carregando by rememberSaveable { mutableStateOf(false) }
     var mensagem by rememberSaveable { mutableStateOf<String?>(null) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        Image(
-            painter = painterResource(R.drawable.mascote_bebida_ja),
-            contentDescription = "Mascote do Bebida Já",
-            modifier = Modifier.size(112.dp)
-        )
-
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Image(painterResource(R.drawable.mascote_bebida_ja), "Mascote do Bebida Já", Modifier.size(112.dp))
         Text("Bem-vindo de volta", style = MaterialTheme.typography.headlineMedium)
         Text("Entre para encontrar bebidas perto de você.")
-
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("E-mail") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
-        )
-
-        OutlinedTextField(
-            value = senha,
-            onValueChange = { senha = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Senha") },
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
-        )
-
-        Button(
-            onClick = {
-                val emailNormalizado = email.trim().lowercase()
-
-                when {
-                    !Patterns.EMAIL_ADDRESS.matcher(emailNormalizado).matches() -> {
-                        mensagem = "Informe um e-mail válido."
+        OutlinedTextField(email, { email = it }, Modifier.fillMaxWidth(), label = { Text("E-mail") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email))
+        OutlinedTextField(senha, { senha = it }, Modifier.fillMaxWidth(), label = { Text("Senha") }, singleLine = true, visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password))
+        Button(onClick = {
+            val normalizado = email.trim().lowercase()
+            when {
+                !Patterns.EMAIL_ADDRESS.matcher(normalizado).matches() -> mensagem = "Informe um e-mail válido."
+                senha.isBlank() -> mensagem = "Informe sua senha."
+                else -> { carregando = true; mensagem = null; RepositorioAutenticacaoFirebase.entrar(normalizado, senha) { result ->
+                    carregando = false; result.onSuccess(onLoginSuccess).onFailure { erro ->
+                        mensagem = if (erro is PerfilIncompletoException) "Seu cadastro está incompleto. Crie uma conta para concluí-lo." else "Não foi possível entrar. Confira os dados e tente novamente."
                     }
-
-                    senha.isBlank() -> {
-                        mensagem = "Informe sua senha."
-                    }
-
-                    else -> {
-                        carregando = true
-                        mensagem = null
-
-                        RepositorioAutenticacaoFirebase.entrar(emailNormalizado, senha) { resultado ->
-                            carregando = false
-
-                            resultado.onSuccess(onLoginSuccess)
-                                .onFailure { erro ->
-                                    mensagem = if (erro is PerfilIncompletoException) {
-                                        "Seu cadastro está incompleto. Use Criar uma conta para concluí-lo."
-                                    } else {
-                                        "Não foi possível entrar. Confira os dados e tente novamente."
-                                    }
-                                }
-                        }
-                    }
-                }
-            },
-            enabled = firebaseDisponivel && !carregando,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(if (carregando) "Entrando..." else "Entrar")
-        }
-
+                } }
+            }
+        }, enabled = firebaseDisponivel && !carregando, modifier = Modifier.fillMaxWidth()) { Text(if (carregando) "Entrando…" else "Entrar") }
         mensagem?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-
-        if (!firebaseDisponivel) {
-            Text(
-                "A autenticação será liberada após a configuração do Firebase.",
-                style = MaterialTheme.typography.bodySmall
-            )
-        }
-
-        TextButton(onClick = onRegisterClick) {
-            Text("Criar uma conta")
-        }
-
-        TextButton(onClick = onExploreClick) {
-            Text("Explorar demonstração")
-        }
+        if (!firebaseDisponivel) Text("Configure o Firebase para habilitar contas reais.", style = MaterialTheme.typography.bodySmall)
+        TextButton(onRegisterClick) { Text("Criar uma conta") }
+        TextButton(onExploreClick) { Text("Explorar demonstração") }
     }
 }
 
@@ -143,120 +70,59 @@ fun LoginScreen(
 fun RegistrationScreen(
     firebaseDisponivel: Boolean,
     onBackClick: () -> Unit,
-    onRegistrationSuccess: (TipoPerfil) -> Unit
+    onRegistrationSuccess: (TipoPerfil, String, DadosComerciaisEmpresa?) -> Unit
 ) {
     var nome by rememberSaveable { mutableStateOf("") }
     var email by rememberSaveable { mutableStateOf("") }
     var senha by rememberSaveable { mutableStateOf("") }
-    var tipoPerfil by rememberSaveable { mutableStateOf(TipoPerfil.CLIENTE) }
+    var endereco by rememberSaveable { mutableStateOf("") }
+    var telefone by rememberSaveable { mutableStateOf("") }
+    var horario by rememberSaveable { mutableStateOf("") }
+    var area by rememberSaveable { mutableStateOf("") }
+    var tipo by rememberSaveable { mutableStateOf(TipoPerfil.CLIENTE) }
     var carregando by rememberSaveable { mutableStateOf(false) }
     var mensagem by rememberSaveable { mutableStateOf<String?>(null) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Criar conta", style = MaterialTheme.typography.headlineMedium)
-        Text("Escolha como você quer usar o Bebida Já.")
-
+        Text("Escolha o perfil e informe os dados da conta.")
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(
-                selected = tipoPerfil == TipoPerfil.CLIENTE,
-                onClick = { tipoPerfil = TipoPerfil.CLIENTE },
-                label = { Text("Cliente") }
-            )
-            FilterChip(
-                selected = tipoPerfil == TipoPerfil.EMPRESA,
-                onClick = { tipoPerfil = TipoPerfil.EMPRESA },
-                label = { Text("Empresa") }
-            )
+            FilterChip(tipo == TipoPerfil.CLIENTE, { tipo = TipoPerfil.CLIENTE }, label = { Text("Cliente") })
+            FilterChip(tipo == TipoPerfil.EMPRESA, { tipo = TipoPerfil.EMPRESA }, label = { Text("Empresa") })
         }
-
-        OutlinedTextField(
-            value = nome,
-            onValueChange = { if (it.length <= 80) nome = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text(if (tipoPerfil == TipoPerfil.EMPRESA) "Nome da empresa" else "Seu nome") },
-            singleLine = true
-        )
-
-        OutlinedTextField(
-            value = email,
-            onValueChange = { if (it.length <= 254) email = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("E-mail") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
-        )
-
-        OutlinedTextField(
-            value = senha,
-            onValueChange = { senha = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Senha") },
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
-        )
-
-        Button(
-            onClick = {
-                val nomeNormalizado = nome.trim()
-                val emailNormalizado = email.trim().lowercase()
-
-                when {
-                    nomeNormalizado.isBlank() -> {
-                        mensagem = "Informe seu nome ou o nome da empresa."
-                    }
-
-                    !Patterns.EMAIL_ADDRESS.matcher(emailNormalizado).matches() -> {
-                        mensagem = "Informe um e-mail válido."
-                    }
-
-                    senha.length < 6 -> {
-                        mensagem = "A senha precisa ter pelo menos 6 caracteres."
-                    }
-
-                    else -> {
-                        carregando = true
-                        mensagem = null
-
-                        RepositorioAutenticacaoFirebase.criarConta(
-                            nomeNormalizado,
-                            emailNormalizado,
-                            senha,
-                            tipoPerfil
-                        ) { resultado ->
-                            carregando = false
-
-                            resultado.onSuccess(onRegistrationSuccess)
-                                .onFailure {
-                                    mensagem = "Não foi possível criar a conta. Confira os dados e tente novamente."
-                                }
+        OutlinedTextField(nome, { if (it.length <= 100) nome = it }, Modifier.fillMaxWidth(), label = { Text(if (tipo == TipoPerfil.EMPRESA) "Nome comercial" else "Seu nome") }, singleLine = true)
+        OutlinedTextField(email, { if (it.length <= 254) email = it }, Modifier.fillMaxWidth(), label = { Text("E-mail") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email))
+        OutlinedTextField(senha, { senha = it }, Modifier.fillMaxWidth(), label = { Text("Senha (mínimo 6 caracteres)") }, singleLine = true, visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password))
+        if (tipo == TipoPerfil.EMPRESA) {
+            Text("Cadastro comercial", style = MaterialTheme.typography.titleMedium)
+            OutlinedTextField(endereco, { endereco = it }, Modifier.fillMaxWidth(), label = { Text("Endereço") }, singleLine = true)
+            OutlinedTextField(telefone, { if (it.length <= 20) telefone = it }, Modifier.fillMaxWidth(), label = { Text("Telefone com DDD") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone))
+            OutlinedTextField(horario, { horario = it }, Modifier.fillMaxWidth(), label = { Text("Horário de funcionamento") }, singleLine = true)
+            OutlinedTextField(area, { area = it }, Modifier.fillMaxWidth(), label = { Text("Área de entrega") }, singleLine = true)
+        }
+        Button(onClick = {
+            val n = nome.trim(); val e = email.trim().lowercase()
+            val comercial = if (tipo == TipoPerfil.EMPRESA) DadosComerciaisEmpresa(n, endereco.trim(), telefone.trim(), horario.trim(), area.trim()) else null
+            when {
+                n.isBlank() -> mensagem = "Informe seu nome ou o nome comercial."
+                !Patterns.EMAIL_ADDRESS.matcher(e).matches() -> mensagem = "Informe um e-mail válido."
+                senha.length < 6 -> mensagem = "A senha precisa ter pelo menos 6 caracteres."
+                comercial != null && comercial.endereco.isBlank() -> mensagem = "Informe o endereço da empresa."
+                comercial != null && comercial.telefone.filter(Char::isDigit).length < 10 -> mensagem = "Informe um telefone com DDD."
+                comercial != null && comercial.horario.isBlank() -> mensagem = "Informe o horário de funcionamento."
+                comercial != null && comercial.areaEntrega.isBlank() -> mensagem = "Informe a área de entrega."
+                else -> {
+                    carregando = true; mensagem = null
+                    RepositorioAutenticacaoFirebase.criarConta(n, e, senha, tipo) { resultado ->
+                        carregando = false
+                        resultado.onSuccess { perfil -> onRegistrationSuccess(perfil, n, comercial) }.onFailure {
+                            mensagem = "Não foi possível criar a conta. Confira os dados e tente novamente."
                         }
                     }
                 }
-            },
-            enabled = firebaseDisponivel && !carregando,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(if (carregando) "Criando conta..." else "Criar conta")
-        }
-
+            }
+        }, enabled = firebaseDisponivel && !carregando, modifier = Modifier.fillMaxWidth()) { Text(if (carregando) "Criando conta…" else "Criar conta") }
         mensagem?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-
-        if (!firebaseDisponivel) {
-            Text(
-                "O cadastro será liberado após a configuração do Firebase.",
-                style = MaterialTheme.typography.bodySmall
-            )
-        }
-
-        TextButton(onClick = onBackClick, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-            Text("Voltar ao login")
-        }
+        if (!firebaseDisponivel) Text("Configure o Firebase para habilitar contas reais.", style = MaterialTheme.typography.bodySmall)
+        TextButton(onBackClick, Modifier.align(Alignment.CenterHorizontally)) { Text("Voltar ao login") }
     }
 }
