@@ -173,7 +173,7 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
 
     Scaffold(
         topBar = {
-            if (tabs.any { it.route == currentRoute }) Row(
+            if (tabs.any { it.route == currentRoute } || (!isBusiness && currentRoute in listOf("empresa/{empresaId}", "empresa/{empresaId}/catalogo", "produto-detalhe/{produtoId}"))) Row(
                 Modifier.fillMaxWidth().statusBarsPadding().padding(end = 8.dp),
                 horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically
             ) {
