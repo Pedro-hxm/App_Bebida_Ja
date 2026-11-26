@@ -79,7 +79,7 @@ fun TelaCatalogoEmpresa(
         }
         item {
             Text(
-                "Catálogo, preços e disponibilidade demonstrativos. Os dados ficam apenas nesta sessão.",
+                "Dados armazenados localmente neste dispositivo, sem sincronização entre dispositivos. Preços e disponibilidade não têm integração comercial definitiva.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

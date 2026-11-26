@@ -104,6 +104,9 @@ class CatalogoDemonstrativoTest {
         assertEquals(available.id, cartProduct?.produtoId)
         assertEquals(available.empresaId, cartProduct?.empresaId)
         assertEquals(available.precoCentavos, cartProduct?.precoUnitarioCentavos)
+        assertEquals(available.volume, cartProduct?.volume)
+        assertEquals(available.imagemRes, cartProduct?.imagemRes)
+        assertEquals(available.imagemPath, cartProduct?.imagemPath)
     }
 
     @Test

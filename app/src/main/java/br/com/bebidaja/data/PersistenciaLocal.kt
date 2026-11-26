@@ -86,9 +86,9 @@ fun ProdutoDemonstrativo.paraProdutoLocal(): ProdutoCatalogo? {
 }
 
 /** Banco local durável do protótipo. Não sincroniza entre dispositivos. */
-class RepositorioDadosLocais(context: Context) : RepositorioPedidos {
+class RepositorioDadosLocais(context: Context, nomeBanco: String = "bebidaja.db") : RepositorioPedidos {
     private val appContext = context.applicationContext
-    private val helper = BancoLocal(appContext)
+    private val helper = BancoLocal(appContext, nomeBanco)
 
     fun salvarEmpresa(empresa: Empresa): Boolean {
         if (empresa.id.isBlank() || empresa.usuarioId.isBlank() || empresa.nome.isBlank() || empresa.email.isBlank() ||
@@ -206,6 +206,7 @@ class RepositorioDadosLocais(context: Context) : RepositorioPedidos {
                 put("pedido_id", pedido.id); put("produto_id", item.produtoId)
                 put("nome", item.nomeProduto); put("preco", item.precoUnitarioCentavos)
                 put("quantidade", item.quantidade)
+                put("volume", item.volume); put("imagem_res", item.imagemRes); put("imagem_path", item.imagemPath)
             }) }
             db.setTransactionSuccessful()
         } finally { db.endTransaction() }
@@ -278,7 +279,10 @@ class RepositorioDadosLocais(context: Context) : RepositorioPedidos {
             cursor.getString(cursor.getColumnIndexOrThrow("produto_id")),
             cursor.getString(cursor.getColumnIndexOrThrow("nome")),
             cursor.getLong(cursor.getColumnIndexOrThrow("preco")),
-            cursor.getInt(cursor.getColumnIndexOrThrow("quantidade"))
+            cursor.getInt(cursor.getColumnIndexOrThrow("quantidade")),
+            cursor.getString(cursor.getColumnIndexOrThrow("volume")),
+            if (cursor.isNull(cursor.getColumnIndexOrThrow("imagem_res"))) null else cursor.getInt(cursor.getColumnIndexOrThrow("imagem_res")),
+            cursor.getString(cursor.getColumnIndexOrThrow("imagem_path"))
         )) } }
         return Pedido(
             id = id, chaveConfirmacao = getString(getColumnIndexOrThrow("chave")),
@@ -298,7 +302,7 @@ class RepositorioDadosLocais(context: Context) : RepositorioPedidos {
     }
 }
 
-private class BancoLocal(context: Context) : SQLiteOpenHelper(context, "bebidaja.db", null, 3) {
+private class BancoLocal(context: Context, nomeBanco: String) : SQLiteOpenHelper(context, nomeBanco, null, 4) {
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL("CREATE TABLE empresas (id TEXT PRIMARY KEY, usuario_id TEXT NOT NULL UNIQUE, nome TEXT NOT NULL, email TEXT NOT NULL, endereco TEXT NOT NULL, telefone TEXT NOT NULL, horario TEXT NOT NULL, area_entrega TEXT NOT NULL, regiao TEXT NOT NULL, ativa INTEGER NOT NULL DEFAULT 1, imagem_path TEXT)")
         db.execSQL("CREATE TABLE produtos (id TEXT PRIMARY KEY, empresa_id TEXT NOT NULL, nome TEXT NOT NULL, descricao TEXT NOT NULL, volume TEXT NOT NULL DEFAULT '', categoria TEXT NOT NULL, preco_centavos INTEGER NOT NULL CHECK(preco_centavos >= 0), disponivel INTEGER NOT NULL DEFAULT 1, imagem_res INTEGER, imagem_path TEXT, FOREIGN KEY(empresa_id) REFERENCES empresas(id))")
@@ -306,7 +310,7 @@ private class BancoLocal(context: Context) : SQLiteOpenHelper(context, "bebidaja
         db.execSQL("CREATE TABLE pedidos (id TEXT PRIMARY KEY, chave TEXT NOT NULL UNIQUE, cliente_id TEXT NOT NULL, empresa_id TEXT NOT NULL, rua TEXT NOT NULL, numero TEXT NOT NULL, bairro TEXT NOT NULL, cidade TEXT NOT NULL, cep TEXT NOT NULL, complemento TEXT NOT NULL, subtotal INTEGER NOT NULL, total INTEGER NOT NULL, pagamento TEXT NOT NULL, comprovante TEXT NOT NULL, status TEXT NOT NULL, criado_em INTEGER NOT NULL)")
         db.execSQL("CREATE INDEX pedidos_cliente_idx ON pedidos(cliente_id, criado_em DESC)")
         db.execSQL("CREATE INDEX pedidos_empresa_idx ON pedidos(empresa_id, criado_em DESC)")
-        db.execSQL("CREATE TABLE itens_pedido (pedido_id TEXT NOT NULL, produto_id TEXT NOT NULL, nome TEXT NOT NULL, preco INTEGER NOT NULL, quantidade INTEGER NOT NULL CHECK(quantidade > 0), PRIMARY KEY(pedido_id, produto_id), FOREIGN KEY(pedido_id) REFERENCES pedidos(id) ON DELETE CASCADE)")
+        db.execSQL("CREATE TABLE itens_pedido (pedido_id TEXT NOT NULL, produto_id TEXT NOT NULL, nome TEXT NOT NULL, preco INTEGER NOT NULL, quantidade INTEGER NOT NULL CHECK(quantidade > 0), volume TEXT, imagem_res INTEGER, imagem_path TEXT, PRIMARY KEY(pedido_id, produto_id), FOREIGN KEY(pedido_id) REFERENCES pedidos(id) ON DELETE CASCADE)")
         inserirDadosDemonstrativos(db)
     }
 
@@ -318,6 +322,11 @@ private class BancoLocal(context: Context) : SQLiteOpenHelper(context, "bebidaja
         if (oldVersion < 3) {
             db.execSQL("ALTER TABLE empresas ADD COLUMN imagem_path TEXT")
             db.execSQL("ALTER TABLE produtos ADD COLUMN imagem_path TEXT")
+        }
+        if (oldVersion < 4) {
+            db.execSQL("ALTER TABLE itens_pedido ADD COLUMN volume TEXT")
+            db.execSQL("ALTER TABLE itens_pedido ADD COLUMN imagem_res INTEGER")
+            db.execSQL("ALTER TABLE itens_pedido ADD COLUMN imagem_path TEXT")
         }
     }
 

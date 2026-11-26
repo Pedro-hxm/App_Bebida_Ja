@@ -34,10 +34,10 @@ fun TelaDetalhesEmpresa(empresa: Empresa?, produtos: List<ProdutoCatalogo>, onVe
         }
         if (empresa == null) item { Text("Não encontramos esse estabelecimento.") } else {
             item { ImagemLocal(empresa.imagemPath, "Imagem de ${empresa.nome}", Modifier.fillMaxWidth().height(180.dp)) }
-            item { Text("${empresa.endereco} · ${empresa.regiao}") }
-            item { Text("Telefone: ${empresa.telefone}") }
-            item { Text("Funcionamento: ${empresa.horario}") }
-            item { Text("Entrega: ${empresa.areaEntrega}") }
+            item { Text("${formatarCampoEmpresa(empresa.endereco)} · ${formatarCampoEmpresa(empresa.regiao)}") }
+            item { Text("Telefone: ${formatarCampoEmpresa(empresa.telefone)}") }
+            item { Text("Funcionamento: ${formatarCampoEmpresa(empresa.horario)}") }
+            item { Text("Entrega: ${formatarCampoEmpresa(empresa.areaEntrega)}") }
             item { Text("Produtos disponíveis: ${produtos.count { it.empresaId == empresa.id && it.disponivel }}") }
             item { Button(onClick = onVerCatalogo, modifier = Modifier.fillMaxWidth()) { Text("Ver catálogo") } }
         }

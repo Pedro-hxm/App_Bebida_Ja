@@ -16,7 +16,9 @@ fun RepositorioPedidos.confirmarPedido(
     criadoEmMillis: Long = System.currentTimeMillis()
 ): Result<Pedido> {
     if (chaveConfirmacao.isBlank()) return Result.failure(IllegalArgumentException("Confirmação inválida."))
-    buscarPorChaveConfirmacao(chaveConfirmacao)?.let { return Result.success(it) }
+    val existente = runCatching { buscarPorChaveConfirmacao(chaveConfirmacao) }
+        .getOrElse { return Result.failure(it) }
+    existente?.let { return Result.success(it) }
     if (clienteId.isBlank() || carrinho.estaVazio || endereco?.estaValido != true || formaPagamento == null) {
         return Result.failure(IllegalArgumentException("Dados do pedido inválidos."))
     }
@@ -26,7 +28,8 @@ fun RepositorioPedidos.confirmarPedido(
     val empresas = carrinho.itens.map { it.produto.empresaId }.distinct()
     if (empresas.size != 1) return Result.failure(IllegalArgumentException("Use produtos de uma única empresa."))
     val itens = carrinho.itens.map {
-        ItemPedido(it.produto.produtoId, it.produto.nome, it.produto.precoUnitarioCentavos, it.quantidade)
+        ItemPedido(it.produto.produtoId, it.produto.nome, it.produto.precoUnitarioCentavos, it.quantidade,
+            it.produto.volume, it.produto.imagemRes, it.produto.imagemPath)
     }
     val subtotal = itens.sumOf { it.subtotalCentavos }
     return runCatching { salvar(Pedido(

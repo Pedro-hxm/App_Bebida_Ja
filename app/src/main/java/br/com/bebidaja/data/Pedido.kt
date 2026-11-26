@@ -11,7 +11,10 @@ data class ItemPedido(
     val produtoId: String,
     val nomeProduto: String,
     val precoUnitarioCentavos: Long,
-    val quantidade: Int
+    val quantidade: Int,
+    val volume: String? = null,
+    val imagemRes: Int? = null,
+    val imagemPath: String? = null
 ) {
     val subtotalCentavos: Long
         get() = precoUnitarioCentavos * quantidade

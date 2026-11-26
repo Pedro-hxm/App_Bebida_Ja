@@ -8,7 +8,10 @@ data class ProdutoCarrinho(
     val produtoId: String,
     val empresaId: String,
     val nome: String,
-    val precoUnitarioCentavos: Long
+    val precoUnitarioCentavos: Long,
+    val volume: String? = null,
+    val imagemRes: Int? = null,
+    val imagemPath: String? = null
 ) {
     init {
         require(produtoId.isNotBlank()) { "O produto precisa de identificador." }

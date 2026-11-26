@@ -35,6 +35,7 @@ import br.com.bebidaja.data.EnderecoEntrega
 import br.com.bebidaja.data.FormaPagamento
 import br.com.bebidaja.data.ItemCarrinho
 import br.com.bebidaja.data.ProdutoCarrinho
+import br.com.bebidaja.ui.components.ImagemLocal
 import br.com.bebidaja.ui.theme.AzulClaro
 import br.com.bebidaja.ui.theme.AzulEscuro
 import br.com.bebidaja.ui.theme.CinzaTexto
@@ -169,7 +170,10 @@ private fun ItemCarrinhoCard(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            ImagemLocal(item.produto.imagemPath, contentDescription = "Imagem de ${item.produto.nome}",
+                modifier = Modifier.size(80.dp), imagemResFallback = item.produto.imagemRes)
             Text(item.produto.nome, style = MaterialTheme.typography.titleMedium)
+            item.produto.volume?.takeIf { it.isNotBlank() }?.let { Text("Volume: $it", color = CinzaTexto) }
             Text(
                 "Preço unitário: ${formatarReais(item.produto.precoUnitarioCentavos)}",
                 color = CinzaTexto

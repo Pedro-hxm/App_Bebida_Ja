@@ -206,7 +206,10 @@ fun mapearProdutoParaCarrinho(produto: ProdutoDemonstrativo): ProdutoCarrinho? {
         produtoId = produto.id,
         empresaId = produto.empresaId,
         nome = nome,
-        precoUnitarioCentavos = preco
+        precoUnitarioCentavos = preco,
+        volume = produto.volume,
+        imagemRes = produto.imagemRes,
+        imagemPath = produto.imagemPath
     )
 }
 
