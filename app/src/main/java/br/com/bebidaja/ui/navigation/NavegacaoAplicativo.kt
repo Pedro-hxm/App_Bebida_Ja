@@ -27,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import com.google.firebase.auth.FirebaseAuth
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -53,6 +54,7 @@ import br.com.bebidaja.ui.screens.TelaCarrinho
 import br.com.bebidaja.ui.screens.TelaEnderecoEntrega
 import br.com.bebidaja.ui.screens.TelaCheckout
 import br.com.bebidaja.ui.screens.TelaComprovante
+import br.com.bebidaja.ui.screens.TelaEscolhaDemonstracao
 import br.com.bebidaja.ui.theme.AzulClaro
 import br.com.bebidaja.ui.theme.AzulEscuro
 import br.com.bebidaja.ui.theme.AzulMedio
@@ -71,11 +73,18 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
     val currentRoute = backStackEntry?.destination?.route
     var usuarioAutenticado by rememberSaveable { mutableStateOf(false) }
     var tipoPerfilAtual by rememberSaveable { mutableStateOf<TipoPerfil?>(null) }
-    val estadoCarrinho = remember { EstadoCarrinhoUi() }
-    val repositorioPedidos = remember { RepositorioPedidosEmMemoria() }
-    val clienteIdAtual = remember(usuarioAutenticado) {
-        runCatching { FirebaseAuth.getInstance().currentUser?.uid }.getOrNull()
-            ?: "cliente-demonstracao"
+    var perfilDemonstracao by rememberSaveable { mutableStateOf<TipoPerfil?>(null) }
+    var geracaoDemonstracao by rememberSaveable { mutableStateOf(0) }
+    val demoSession = perfilDemonstracao?.let(::criarDemoSession)
+    val estadoCarrinho = remember(geracaoDemonstracao) { EstadoCarrinhoUi() }
+    val repositorioPedidos = remember(geracaoDemonstracao) { RepositorioPedidosEmMemoria() }
+    val clienteIdAtual = remember(usuarioAutenticado, perfilDemonstracao) {
+        if (usuarioAutenticado && perfilDemonstracao == null) {
+            runCatching { FirebaseAuth.getInstance().currentUser?.uid }.getOrNull()
+                ?: "cliente-demonstracao"
+        } else {
+            "cliente-demonstracao"
+        }
     }
 
     val tabs = listOf(
@@ -95,12 +104,36 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
         }
     }
 
+    fun sairDaDemonstracao() {
+        perfilDemonstracao = null
+        geracaoDemonstracao++
+        navController.navigate("escolha") {
+            popUpTo(navController.graph.id) { inclusive = true }
+            launchSingleTop = true
+        }
+    }
+
+    fun abrirDemonstracao(tipoPerfil: TipoPerfil) {
+        perfilDemonstracao = tipoPerfil
+        usuarioAutenticado = false
+        tipoPerfilAtual = null
+        geracaoDemonstracao++
+        navController.navigate("home") {
+            popUpTo("escolha") { inclusive = true }
+            launchSingleTop = true
+        }
+        if (tipoPerfil == TipoPerfil.EMPRESA) {
+            navController.navigate("company") { launchSingleTop = true }
+        }
+    }
+
     fun abrirInicioDoPerfil(tipoPerfil: TipoPerfil) {
+        perfilDemonstracao = null
         usuarioAutenticado = true
         tipoPerfilAtual = tipoPerfil
 
         navController.navigate("home") {
-            popUpTo("login") { inclusive = true }
+            popUpTo("escolha") { inclusive = true }
             launchSingleTop = true
         }
 
@@ -116,8 +149,12 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
             if (tabs.any { it.route == currentRoute }) {
                 Row(
                     modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(end = 8.dp),
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    if (demoSession != null) {
+                        Text("DEMONSTRAÇÃO", style = androidx.compose.material3.MaterialTheme.typography.labelMedium, color = AzulMedio, modifier = Modifier.weight(1f).padding(start = 24.dp))
+                    }
                     FilledTonalIconButton(
                         onClick = { navController.navigate("cart") { launchSingleTop = true } },
                         colors = IconButtonDefaults.filledTonalIconButtonColors(
@@ -163,19 +200,26 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
         ) {
             composable("splash") {
                 SplashScreen {
-                    navController.navigate("login") {
+                    navController.navigate("escolha") {
                         popUpTo("splash") { inclusive = true }
                         launchSingleTop = true
                     }
                 }
+            }
+            composable("escolha") {
+                TelaEscolhaDemonstracao(
+                    onEscolher = ::abrirDemonstracao,
+                    onAcessoReal = { navController.navigate("login") { launchSingleTop = true } }
+                )
             }
             composable("login") {
                 LoginScreen(
                     firebaseDisponivel = firebaseDisponivel,
                     onRegisterClick = { navController.navigate("cadastro") },
                     onExploreClick = {
-                        navController.navigate("home") {
+                        navController.navigate("escolha") {
                             popUpTo("login") { inclusive = true }
+                            launchSingleTop = true
                         }
                     },
                     onLoginSuccess = ::abrirInicioDoPerfil
@@ -276,17 +320,21 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
             }
             composable("profile") {
                 ProfileScreen(
-                    tipoPerfil = tipoPerfilAtual,
-                    mostrarSaida = usuarioAutenticado,
+                    tipoPerfil = demoSession?.tipoPerfil ?: tipoPerfilAtual,
+                    demoSession = demoSession,
+                    mostrarSaida = usuarioAutenticado || demoSession != null,
                     onCompanyClick = { navController.navigate("company") },
-                    onSignOutClick = ::encerrarSessao
+                    onOrdersClick = { navController.openTab("orders") },
+                    onSignOutClick = { if (demoSession != null) sairDaDemonstracao() else encerrarSessao() }
                 )
             }
             composable("company") {
                 CompanyScreen(
                     onBackClick = { navController.popBackStack() },
-                    mostrarSaida = usuarioAutenticado,
-                    onSignOutClick = ::encerrarSessao
+                    demoSession = demoSession,
+                    mostrarSaida = usuarioAutenticado || demoSession != null,
+                    onProfileClick = { navController.navigate("profile") { launchSingleTop = true } },
+                    onSignOutClick = { if (demoSession != null) sairDaDemonstracao() else encerrarSessao() }
                 )
             }
         }
