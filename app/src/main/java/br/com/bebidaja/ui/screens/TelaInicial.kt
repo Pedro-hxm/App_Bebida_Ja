@@ -44,6 +44,7 @@ import br.com.bebidaja.ui.theme.AzulClaro
 @Composable
 fun HomeScreen(
     onSearchClick: () -> Unit,
+    onStoreClick: (String) -> Unit,
     onAddToCart: (br.com.bebidaja.data.DemoBeverage) -> Unit
 ) {
     var selectedCategory by rememberSaveable { mutableStateOf(demoCategories.first()) }
@@ -106,7 +107,9 @@ fun HomeScreen(
             }
         }
         item { SectionTitle("Estabelecimentos") }
-        items(demoStores) { store -> StoreCard(store) }
+        items(demoStores, key = { it.id }) { store ->
+            StoreCard(store, onClick = { onStoreClick(store.id) })
+        }
         item { SectionTitle("Bebidas em destaque") }
         items(demoBeverages) { beverage ->
             BeverageCard(beverage) { onAddToCart(beverage) }

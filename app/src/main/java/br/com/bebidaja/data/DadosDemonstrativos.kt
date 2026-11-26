@@ -10,8 +10,14 @@ data class DemoBeverage(
 )
 
 data class DemoStore(
+    val id: String,
     val name: String,
-    val description: String
+    val description: String,
+    val imageRes: Int? = null,
+    val address: String? = null,
+    val phone: String? = null,
+    val hours: String? = null,
+    val deliveryArea: String? = null
 )
 
 val demoCategories = listOf("Água", "Refrigerante", "Suco", "Energético")
@@ -23,6 +29,17 @@ val demoBeverages = listOf(
 )
 
 val demoStores = listOf(
-    DemoStore("Adega Central", "Goiana • Entrega em 25–40 min"),
-    DemoStore("Mercadinho do Bairro", "Goiana • Entrega em 30–50 min")
+    DemoStore(
+        id = "adega-central",
+        name = "Adega Central",
+        description = "Goiana • Entrega em 25–40 min"
+    ),
+    DemoStore(
+        id = "mercadinho-do-bairro",
+        name = "Mercadinho do Bairro",
+        description = "Goiana • Entrega em 30–50 min"
+    )
 )
+
+fun findDemoStoreById(storeId: String): DemoStore? =
+    demoStores.firstOrNull { it.id == storeId }

@@ -81,19 +81,32 @@ fun BeverageCard(beverage: DemoBeverage, onAddClick: () -> Unit = {}) {
 }
 
 @Composable
-fun StoreCard(store: DemoStore) {
+fun StoreCard(store: DemoStore, onClick: () -> Unit) {
     Card(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = AzulClaro)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 Text(store.name, style = MaterialTheme.typography.titleMedium)
-                Text(store.description, color = CinzaTexto)
+                Text(store.description, color = MaterialTheme.colorScheme.onSurface)
             }
+            Text(
+                text = "Ver detalhes",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
         }
     }
 }
