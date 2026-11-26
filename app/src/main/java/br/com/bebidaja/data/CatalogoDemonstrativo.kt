@@ -7,10 +7,7 @@ import java.text.Normalizer
 import java.text.NumberFormat
 import java.util.Locale
 
-/**
- * Modelo temporário de catálogo. Os dados ficam apenas em memória e não representam
- * ofertas, preços ou disponibilidade de estabelecimentos reais.
- */
+/** Modelo de apresentação adaptado dos registros persistidos do catálogo local. */
 data class ProdutoDemonstrativo(
     val id: String,
     val empresaId: String,
@@ -35,88 +32,7 @@ data class ProdutoDemonstrativo(
     val imageRes: Int get() = imagemRes ?: R.drawable.mascote_bebida_ja
 }
 
-private data class ProdutoModeloDemo(
-    val sufixoId: String,
-    val nome: String?,
-    val volume: String?,
-    val categoria: String,
-    val precoCentavos: Long?,
-    val disponivel: Boolean = true,
-    val imagemRes: Int? = null
-)
 
-private val modelosProdutosDemo = listOf(
-    ProdutoModeloDemo(
-        sufixoId = "agua",
-        nome = "Água mineral (demo)",
-        volume = "1,5 L",
-        categoria = "Água",
-        precoCentavos = 450,
-        imagemRes = R.drawable.bebida_agua
-    ),
-    ProdutoModeloDemo(
-        sufixoId = "refrigerante",
-        nome = "Refrigerante (demo)",
-        volume = "2 L",
-        categoria = "Refrigerante",
-        precoCentavos = 990,
-        imagemRes = R.drawable.bebida_refrigerante
-    ),
-    ProdutoModeloDemo(
-        sufixoId = "suco",
-        nome = "Suco de uva (demo)",
-        volume = "1 L",
-        categoria = "Suco",
-        precoCentavos = 750,
-        imagemRes = R.drawable.bebida_suco_uva
-    ),
-    ProdutoModeloDemo(
-        sufixoId = "energetico",
-        nome = "Energético (demo)",
-        volume = "269 ml",
-        categoria = "Energético",
-        precoCentavos = 850,
-        disponivel = false
-    ),
-    ProdutoModeloDemo(
-        sufixoId = "cerveja",
-        nome = "Cerveja (demo)",
-        volume = "350 ml",
-        categoria = "Cerveja",
-        precoCentavos = 650
-    ),
-    ProdutoModeloDemo(
-        sufixoId = "destilado",
-        nome = "Destilado (demo)",
-        volume = "700 ml",
-        categoria = "Destilados",
-        precoCentavos = 3490
-    ),
-    ProdutoModeloDemo(
-        sufixoId = "outros-sem-dados",
-        nome = "Produto sem informações (demo)",
-        volume = null,
-        categoria = "Outros",
-        precoCentavos = null,
-        disponivel = false
-    )
-)
-
-val demoProducts: List<ProdutoDemonstrativo> = demoStores.flatMap { empresa ->
-    modelosProdutosDemo.map { modelo ->
-        ProdutoDemonstrativo(
-            id = "demo-${empresa.id}-${modelo.sufixoId}",
-            empresaId = empresa.id,
-            nome = modelo.nome,
-            descricao = "Informações fictícias para demonstração local.",
-            volume = modelo.volume,
-            categoria = modelo.categoria,
-            precoCentavos = modelo.precoCentavos,
-            disponivel = modelo.disponivel,
-            imagemRes = modelo.imagemRes
-        )
-    }
-}
 
 data class FiltroPesquisaCatalogo(
     val termo: String = "",
@@ -152,14 +68,14 @@ fun pesquisarCatalogo(
         termo.isBlank() || normalizarTextoPesquisa(empresa.name).contains(termo)
     }
     val produtosEncontrados = produtos.filter { produto ->
-        val empresa = empresas.firstOrNull { it.id == produto.empresaId }
+        val empresa = empresas.firstOrNull { it.id == produto.empresaId } ?: return@filter false
         val empresaSelecionada = filtro.empresaId == null || produto.empresaId == filtro.empresaId
         val categoriaSelecionada = filtro.categoria == null || produto.categoria == filtro.categoria
         val termoEncontrado = termo.isBlank() ||
             normalizarTextoPesquisa(produto.nome.orEmpty()).contains(termo) ||
             normalizarTextoPesquisa(produto.descricao.orEmpty()).contains(termo) ||
             normalizarTextoPesquisa(produto.categoria.orEmpty()).contains(termo) ||
-            empresa?.let { normalizarTextoPesquisa(it.name).contains(termo) } == true
+            normalizarTextoPesquisa(empresa.name).contains(termo)
         empresaSelecionada && categoriaSelecionada && termoEncontrado
     }
 
@@ -195,7 +111,7 @@ fun converterPrecoParaCentavos(valor: String): Long? {
 
 fun formatarPreco(centavos: Long?): String =
     centavos?.takeIf { it >= 0L }
-        ?.let { NumberFormat.getCurrencyInstance(Locale("pt", "BR")).format(it / 100.0) }
+        ?.let { NumberFormat.getCurrencyInstance(Locale.forLanguageTag("pt-BR")).format(it / 100.0) }
         ?: "Não informado"
 
 fun mapearProdutoParaCarrinho(produto: ProdutoDemonstrativo): ProdutoCarrinho? {
@@ -218,47 +134,4 @@ fun podeAdicionarAoCarrinho(produto: ProdutoDemonstrativo, carrinho: Carrinho): 
     val empresasNoCarrinho = carrinho.itens.map { it.produto.empresaId }.toSet()
     return empresasNoCarrinho.isEmpty() ||
         (empresasNoCarrinho.size == 1 && produto.empresaId in empresasNoCarrinho)
-}
-
-/**
- * Repositório isolado e volátil para prototipagem. A futura integração deve substituir
- * esta implementação pelo contrato compartilhado com Guilherme.
- */
-class RepositorioCatalogoDemonstrativo(
-    produtosIniciais: List<ProdutoDemonstrativo> = demoProducts
-) {
-    private val produtos = produtosIniciais.toMutableList()
-
-    fun listarTodos(): List<ProdutoDemonstrativo> = produtos.toList()
-
-    fun listarPorEmpresa(empresaId: String): List<ProdutoDemonstrativo> =
-        produtos.filter { it.empresaId == empresaId }
-
-    fun buscarPorId(produtoId: String): ProdutoDemonstrativo? =
-        produtos.firstOrNull { it.id == produtoId }
-
-    fun salvar(produto: ProdutoDemonstrativo): Boolean {
-        if (validarCamposProduto(produto).isNotEmpty()) return false
-        val indice = produtos.indexOfFirst { it.id == produto.id }
-        if (indice >= 0) {
-            if (produtos[indice].empresaId != produto.empresaId) return false
-            produtos[indice] = produto
-        } else {
-            if (produtos.any { it.id == produto.id }) return false
-            produtos.add(produto)
-        }
-        return true
-    }
-
-    fun alterarDisponibilidade(produtoId: String, empresaId: String, disponivel: Boolean): Boolean {
-        val indice = produtos.indexOfFirst {
-            it.id == produtoId && it.empresaId == empresaId
-        }
-        if (indice < 0) return false
-        produtos[indice] = produtos[indice].copy(disponivel = disponivel)
-        return true
-    }
-
-    fun remover(produtoId: String, empresaId: String): Boolean =
-        produtos.removeAll { it.id == produtoId && it.empresaId == empresaId }
 }

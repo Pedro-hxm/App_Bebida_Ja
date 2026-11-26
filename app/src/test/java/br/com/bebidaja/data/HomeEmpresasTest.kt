@@ -1,82 +1,94 @@
 package br.com.bebidaja.data
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class HomeEmpresasTest {
-    @Test
-    fun noSelectedRegionReturnsAllDemonstrativeStores() {
-        assertEquals(demoStores, filterDemoStoresByRegion(demoStores, null))
-    }
-
-    @Test
-    fun selectedRegionReturnsOnlyMatchingStores() {
-        val otherRegionStore = demoStores.first().copy(
-            id = "estabelecimento-outra-regiao-demo",
-            regionId = "outra-regiao-demo"
+    private val empresasPersistidas = listOf(
+        Empresa(
+            id = "adega-central",
+            usuarioId = "demo-company",
+            nome = "Adega Central",
+            email = "empresa@demonstracao.com",
+            endereco = "Centro, Goiana - PE",
+            telefone = "(81) 99999-1001",
+            horario = "Todos os dias, 16h às 23h",
+            areaEntrega = "Goiana e bairros próximos",
+            regiao = "Goiana"
+        ),
+        Empresa(
+            id = "mercadinho-do-bairro",
+            usuarioId = "demo-market",
+            nome = "Mercadinho do Bairro",
+            email = "mercado@demonstracao.com",
+            endereco = "Rua do Comércio, Goiana - PE",
+            telefone = "(81) 99999-1002",
+            horario = "Segunda a sábado, 8h às 20h",
+            areaEntrega = "Goiana",
+            regiao = "Goiana"
         )
-        val filteredStores = filterDemoStoresByRegion(
-            demoStores + otherRegionStore,
-            "goiana-demo"
+    )
+
+    @Test
+    fun regionOptionsAndCardsUseTheSamePersistedRegionIdentity() {
+        val regioes = listarRegioesPersistidas(empresasPersistidas)
+        val regionIdFromCard = empresasPersistidas.first().paraDemoStore().regionId
+
+        assertEquals(listOf(RegiaoPersistida(id = "goiana", nome = "Goiana")), regioes)
+        assertEquals("goiana", regionIdFromCard)
+        assertEquals(empresasPersistidas, filtrarEmpresasPorRegiao(empresasPersistidas, regionIdFromCard))
+    }
+
+    @Test
+    fun persistedAndLegacyRegionIdsResolveToTheSameCompanies() {
+        assertEquals(
+            empresasPersistidas,
+            filtrarEmpresasPorRegiao(empresasPersistidas, "goiana")
         )
-
-        assertEquals(demoStores, filteredStores)
-        assertTrue(filteredStores.all { it.regionId == "goiana-demo" })
+        assertEquals(
+            empresasPersistidas,
+            filtrarEmpresasPorRegiao(empresasPersistidas, "goiana-demo")
+        )
     }
 
     @Test
-    fun clearingRegionFilterReturnsAllStoresAgain() {
-        val filteredStores = filterDemoStoresByRegion(demoStores, "goiana-demo")
+    fun noRegionFilterAndClearingReturnAllPersistedCompanies() {
+        val filtered = filtrarEmpresasPorRegiao(empresasPersistidas, "goiana")
 
-        assertEquals(2, filteredStores.size)
-        assertEquals(demoStores, filterDemoStoresByRegion(demoStores, null))
+        assertEquals(empresasPersistidas, filtrarEmpresasPorRegiao(empresasPersistidas, null))
+        assertEquals(empresasPersistidas, filtrarEmpresasPorRegiao(empresasPersistidas, ""))
+        assertEquals(empresasPersistidas, filtrarEmpresasPorRegiao(empresasPersistidas, null))
+        assertTrue(filtered.isNotEmpty())
     }
 
     @Test
-    fun unknownRegionReturnsEmptyList() {
+    fun unknownRegionReturnsNoCompanies() {
         assertTrue(
-            filterDemoStoresByRegion(demoStores, "regiao-nao-cadastrada").isEmpty()
+            filtrarEmpresasPorRegiao(empresasPersistidas, "regiao-inexistente").isEmpty()
         )
     }
 
     @Test
-    fun regionNameLookupReturnsNullForMissingOrUnknownIds() {
-        assertEquals("Goiana (demo)", findDemoRegionName("goiana-demo"))
-        assertNull(findDemoRegionName(null))
-        assertNull(findDemoRegionName("regiao-nao-cadastrada"))
+    fun missingRegionRemainsUnassignedAndDoesNotCreateAnOption() {
+        val semRegiao = empresasPersistidas.first().copy(regiao = "")
+        val semRegiaoStore = semRegiao.paraDemoStore()
+
+        assertTrue(listarRegioesPersistidas(listOf(semRegiao)).isEmpty())
+        assertNull(semRegiaoStore.regionId)
+        assertEquals("Região não informada", demoStoreRegionLabel(semRegiaoStore.regionId))
+        assertEquals(listOf(semRegiao), filtrarEmpresasPorRegiao(listOf(semRegiao), null))
+        assertTrue(filtrarEmpresasPorRegiao(listOf(semRegiao), "goiana").isEmpty())
     }
 
     @Test
-    fun missingOrUnknownRegionIsIncludedOnlyWithoutARegionFilter() {
-        val storesWithUnassignedRegions = listOf(
-            demoStores.first().copy(regionId = null),
-            demoStores.last().copy(regionId = "regiao-nao-cadastrada")
-        )
+    fun regionFilteringPreservesPersistedCompanyIds() {
+        val filtered = filtrarEmpresasPorRegiao(empresasPersistidas, "goiana")
 
         assertEquals(
-            storesWithUnassignedRegions,
-            filterDemoStoresByRegion(storesWithUnassignedRegions, null)
+            setOf("adega-central", "mercadinho-do-bairro"),
+            filtered.map { it.id }.toSet()
         )
-        assertTrue(
-            filterDemoStoresByRegion(storesWithUnassignedRegions, "goiana-demo").isEmpty()
-        )
-        assertEquals("Região não informada", demoStoreRegionLabel(null))
-        assertEquals(
-            "Região não informada",
-            demoStoreRegionLabel("regiao-nao-cadastrada")
-        )
-        assertFalse(demoStoreRegionLabel("goiana-demo").contains("não informada"))
-    }
-
-    @Test
-    fun filteringPreservesStableIdsResolvableByDetailsRoute() {
-        val originalIds = setOf("adega-central", "mercadinho-do-bairro")
-        val filteredStores = filterDemoStoresByRegion(demoStores, "goiana-demo")
-
-        assertEquals(originalIds, filteredStores.map { it.id }.toSet())
-        assertTrue(filteredStores.all { findDemoStoreById(it.id) === it })
     }
 }
