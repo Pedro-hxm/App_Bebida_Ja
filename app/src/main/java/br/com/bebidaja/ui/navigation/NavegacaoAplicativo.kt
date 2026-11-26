@@ -54,6 +54,7 @@ import br.com.bebidaja.data.podeAdicionarAoCarrinho
 import br.com.bebidaja.data.paraDemoStore
 import br.com.bebidaja.data.paraProdutoDemonstrativo
 import br.com.bebidaja.data.paraProdutoLocal
+import br.com.bebidaja.data.confirmarPedido
 import br.com.bebidaja.ui.screens.CompanyScreen
 import br.com.bebidaja.ui.screens.HomeScreen
 import br.com.bebidaja.ui.screens.LoginScreen
@@ -88,10 +89,10 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
-    var usuarioAutenticado by rememberSaveable { mutableStateOf(false) }
-    var tipoPerfilAtual by rememberSaveable { mutableStateOf<TipoPerfil?>(null) }
-    var perfilDemonstracao by rememberSaveable { mutableStateOf<TipoPerfil?>(null) }
-    var geracaoDemonstracao by rememberSaveable { mutableIntStateOf(0) }
+    var usuarioAutenticado by remember { mutableStateOf(false) }
+    var tipoPerfilAtual by remember { mutableStateOf<TipoPerfil?>(null) }
+    var perfilDemonstracao by remember { mutableStateOf<TipoPerfil?>(null) }
+    var geracaoDemonstracao by remember { mutableIntStateOf(0) }
     var dadosAlterados by rememberSaveable { mutableIntStateOf(0) }
     var nomeUsuario by rememberSaveable { mutableStateOf("") }
     var emailUsuario by rememberSaveable { mutableStateOf("") }
@@ -104,7 +105,10 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
         tipoPerfilAtual == TipoPerfil.EMPRESA -> uidAtual
         else -> null
     }
-    val empresaAtual = idEmpresa?.let(repositorio::buscarEmpresa) ?: if (tipoPerfilAtual == TipoPerfil.EMPRESA && uidAtual != null) {
+    val empresaAtual = if (tipoPerfilAtual == TipoPerfil.EMPRESA && uidAtual != null) {
+        repositorio.empresaDoUsuario(uidAtual) ?: idEmpresa?.let(repositorio::buscarEmpresa)
+    } else idEmpresa?.let(repositorio::buscarEmpresa)
+    val empresaAtualFinal = empresaAtual ?: if (tipoPerfilAtual == TipoPerfil.EMPRESA && uidAtual != null) {
         Empresa(uidAtual, uidAtual, FirebaseAuth.getInstance().currentUser?.displayName.orEmpty(), FirebaseAuth.getInstance().currentUser?.email.orEmpty(), "", "", "", "")
     } else null
     val listaEmpresas = remember(dadosAlterados) { repositorio.listarEmpresas() }
@@ -115,6 +119,7 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
     val podeGerenciarProdutos = empresaIdGerenciada != null
 
     fun sairDaDemonstracao() {
+        RepositorioAutenticacaoFirebase.sair()
         perfilDemonstracao = null; geracaoDemonstracao++; dadosAlterados++
         navController.navigate("escolha") { popUpTo(navController.graph.id) { inclusive = true }; launchSingleTop = true }
     }
@@ -124,7 +129,8 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
         val user = runCatching { FirebaseAuth.getInstance().currentUser }.getOrNull()
         nomeUsuario = nome.ifBlank { user?.displayName.orEmpty() }; emailUsuario = user?.email.orEmpty()
         if (tipo == TipoPerfil.EMPRESA && user != null && dados != null) {
-            repositorio.salvarEmpresa(Empresa(user.uid, user.uid, dados.nome, user.email.orEmpty(), dados.endereco, dados.telefone, dados.horario, dados.areaEntrega))
+            val salvo = repositorio.salvarEmpresa(Empresa(user.uid, user.uid, dados.nome, user.email.orEmpty(), dados.endereco, dados.telefone, dados.horario, dados.areaEntrega, dados.regiao, dados.imagemPath))
+            if (!salvo) Toast.makeText(contexto, "Não foi possível gravar o perfil comercial neste dispositivo.", Toast.LENGTH_LONG).show()
             dadosAlterados++
         }
         navController.navigate(if (tipo == TipoPerfil.EMPRESA) "company" else "home") {
@@ -152,9 +158,11 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
     )
     fun encerrarSessao() {
         RepositorioAutenticacaoFirebase.sair(); usuarioAutenticado = false; tipoPerfilAtual = null
+        nomeUsuario = ""; emailUsuario = ""
         navController.navigate("login") { popUpTo(navController.graph.id) { inclusive = true }; launchSingleTop = true }
     }
     fun abrirDemonstracao(tipo: TipoPerfil) {
+        RepositorioAutenticacaoFirebase.sair()
         perfilDemonstracao = tipo; usuarioAutenticado = false; tipoPerfilAtual = null; geracaoDemonstracao++; dadosAlterados++
         navController.navigate(if (tipo == TipoPerfil.EMPRESA) "company" else "home") {
             popUpTo("escolha") { inclusive = true }; launchSingleTop = true
@@ -267,7 +275,7 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
             composable("profile") {
                 val authUser = runCatching { FirebaseAuth.getInstance().currentUser }.getOrNull()
                 ProfileScreen(tipoPerfil = demoSession?.tipoPerfil ?: tipoPerfilAtual, demoSession = demoSession,
-                    mostrarSaida = usuarioAutenticado || demoSession != null, empresa = empresaAtual,
+                    mostrarSaida = usuarioAutenticado || demoSession != null, empresa = empresaAtualFinal,
                     nome = authUser?.displayName.orEmpty().ifBlank { nomeUsuario.ifBlank { demoSession?.nome.orEmpty() } },
                     email = authUser?.email.orEmpty().ifBlank { emailUsuario.ifBlank { demoSession?.email.orEmpty() } },
                     onCompanyClick = { if (isBusiness) navController.navigate("company") { launchSingleTop = true } },
@@ -275,7 +283,7 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
                     onSignOutClick = { if (demoSession != null) sairDaDemonstracao() else encerrarSessao() })
             }
             composable("company") {
-                val empresa = empresaAtual
+                val empresa = empresaAtualFinal
                 if (isBusiness && empresa != null) CompanyScreen(
                     repositorio = repositorio, empresaInicial = empresa,
                     pedidos = remember(empresa.id, dadosAlterados) { repositorio.listarPorEmpresa(empresa.id) },

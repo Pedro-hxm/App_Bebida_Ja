@@ -17,6 +17,7 @@ android {
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildFeatures {
@@ -46,6 +47,8 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.10.2")
 
     testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
+    androidTestImplementation("androidx.test:runner:1.7.0")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
