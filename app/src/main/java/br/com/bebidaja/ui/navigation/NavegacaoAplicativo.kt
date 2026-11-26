@@ -22,6 +22,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -92,13 +93,13 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
     var usuarioAutenticado by remember { mutableStateOf(false) }
     var tipoPerfilAtual by remember { mutableStateOf<TipoPerfil?>(null) }
     var perfilDemonstracao by remember { mutableStateOf<TipoPerfil?>(null) }
-    var geracaoDemonstracao by remember { mutableIntStateOf(0) }
     var dadosAlterados by rememberSaveable { mutableIntStateOf(0) }
     var nomeUsuario by rememberSaveable { mutableStateOf("") }
     var emailUsuario by rememberSaveable { mutableStateOf("") }
     val demoSession = perfilDemonstracao?.let(::criarDemoSession)
-    val estadoCarrinho = remember(geracaoDemonstracao) { EstadoCarrinhoUi() }
     val uidAtual = if (usuarioAutenticado) runCatching { FirebaseAuth.getInstance().currentUser?.uid }.getOrNull() else null
+    val chaveSessao = chaveSessaoCarrinho(uidAtual, perfilDemonstracao?.valorFirestore)
+    val estadoCarrinho = remember(chaveSessao) { EstadoCarrinhoUi() }
     val isBusiness = (tipoPerfilAtual ?: perfilDemonstracao) == TipoPerfil.EMPRESA
     val idEmpresa = when {
         perfilDemonstracao == TipoPerfil.EMPRESA -> "adega-central"
@@ -119,12 +120,14 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
     val podeGerenciarProdutos = empresaIdGerenciada != null
 
     fun sairDaDemonstracao() {
+        estadoCarrinho.limparSessao()
         RepositorioAutenticacaoFirebase.sair()
-        perfilDemonstracao = null; geracaoDemonstracao++; dadosAlterados++
+        perfilDemonstracao = null; dadosAlterados++
         navController.navigate("escolha") { popUpTo(navController.graph.id) { inclusive = true }; launchSingleTop = true }
     }
 
     fun entrarNoPerfil(tipo: TipoPerfil, nome: String = "", dados: DadosComerciaisEmpresa? = null) {
+        estadoCarrinho.limparSessao()
         perfilDemonstracao = null; usuarioAutenticado = true; tipoPerfilAtual = tipo
         val user = runCatching { FirebaseAuth.getInstance().currentUser }.getOrNull()
         nomeUsuario = nome.ifBlank { user?.displayName.orEmpty() }; emailUsuario = user?.email.orEmpty()
@@ -136,6 +139,34 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
         navController.navigate(if (tipo == TipoPerfil.EMPRESA) "company" else "home") {
             popUpTo(navController.graph.id) { inclusive = true }; launchSingleTop = true
         }
+    }
+
+    DisposableEffect(firebaseDisponivel, usuarioAutenticado, uidAtual) {
+        val auth = if (firebaseDisponivel) runCatching { FirebaseAuth.getInstance() }.getOrNull() else null
+        if (auth == null) return@DisposableEffect onDispose { }
+
+        var uidAnterior = auth.currentUser?.uid
+        val listener = FirebaseAuth.AuthStateListener { atualizacao ->
+            val novoUid = atualizacao.currentUser?.uid
+            if (novoUid != uidAnterior) {
+                val trocarSessao = exigeReautenticacao(uidAnterior, novoUid, usuarioAutenticado)
+                uidAnterior = novoUid
+                if (trocarSessao) {
+                    estadoCarrinho.limparSessao()
+                    usuarioAutenticado = false
+                    tipoPerfilAtual = null
+                    perfilDemonstracao = null
+                    nomeUsuario = ""
+                    emailUsuario = ""
+                    navController.navigate("login") {
+                        popUpTo(navController.graph.id) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            }
+        }
+        auth.addAuthStateListener(listener)
+        onDispose { auth.removeAuthStateListener(listener) }
     }
 
     LaunchedEffect(firebaseDisponivel) {
@@ -157,13 +188,15 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
         AppTab("orders", "Pedidos", Icons.AutoMirrored.Filled.List), AppTab("profile", "Perfil", Icons.Filled.Person)
     )
     fun encerrarSessao() {
+        estadoCarrinho.limparSessao()
         RepositorioAutenticacaoFirebase.sair(); usuarioAutenticado = false; tipoPerfilAtual = null
         nomeUsuario = ""; emailUsuario = ""
         navController.navigate("login") { popUpTo(navController.graph.id) { inclusive = true }; launchSingleTop = true }
     }
     fun abrirDemonstracao(tipo: TipoPerfil) {
+        estadoCarrinho.limparSessao()
         RepositorioAutenticacaoFirebase.sair()
-        perfilDemonstracao = tipo; usuarioAutenticado = false; tipoPerfilAtual = null; geracaoDemonstracao++; dadosAlterados++
+        perfilDemonstracao = tipo; usuarioAutenticado = false; tipoPerfilAtual = null; dadosAlterados++
         navController.navigate(if (tipo == TipoPerfil.EMPRESA) "company" else "home") {
             popUpTo("escolha") { inclusive = true }; launchSingleTop = true
         }

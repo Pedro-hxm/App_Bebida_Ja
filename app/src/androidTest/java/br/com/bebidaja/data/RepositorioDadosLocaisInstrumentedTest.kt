@@ -78,6 +78,24 @@ class RepositorioDadosLocaisInstrumentedTest {
     }
 
     @Test
+    fun historicoDePedidosFicaIsoladoPorCliente() {
+        val repo = RepositorioDadosLocais(context)
+        val endereco = EnderecoEntrega("Rua A", "10", "Centro", "Goiana", "55900000")
+        val carrinho = Carrinho().apply {
+            adicionar(ProdutoCarrinho("produto-isolamento", "empresa-isolamento", "Agua", 500))
+        }
+        repo.confirmarPedido("cliente-a", carrinho, endereco, FormaPagamento.PIX, "DEMO-A", "chave-a").getOrThrow()
+        repo.confirmarPedido("cliente-b", carrinho, endereco, FormaPagamento.PIX, "DEMO-B", "chave-b").getOrThrow()
+
+        assertEquals(1, repo.listarPorCliente("cliente-a").size)
+        assertEquals("cliente-a", repo.listarPorCliente("cliente-a").single().clienteId)
+        assertEquals(1, repo.listarPorCliente("cliente-b").size)
+        assertEquals("cliente-b", repo.listarPorCliente("cliente-b").single().clienteId)
+        assertTrue(repo.listarPorCliente("cliente-c").isEmpty())
+        repo.fechar()
+    }
+
+    @Test
     fun bancoVersaoDoisMigraAsColunasDeImagemSemApagarOsDadosComerciais() {
         val database = SQLiteDatabase.openOrCreateDatabase(context.getDatabasePath("bebidaja.db"), null)
         database.execSQL("CREATE TABLE empresas (id TEXT PRIMARY KEY, usuario_id TEXT NOT NULL UNIQUE, nome TEXT NOT NULL, email TEXT NOT NULL, endereco TEXT NOT NULL, telefone TEXT NOT NULL, horario TEXT NOT NULL, area_entrega TEXT NOT NULL, regiao TEXT NOT NULL, ativa INTEGER NOT NULL DEFAULT 1)")

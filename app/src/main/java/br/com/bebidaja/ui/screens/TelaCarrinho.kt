@@ -70,7 +70,14 @@ class EstadoCarrinhoUi {
 
     fun limparCarrinho() {
         carrinho.limpar()
+        chaveConfirmacao = UUID.randomUUID().toString()
         revisao++
+    }
+
+    fun limparSessao() {
+        limparCarrinho()
+        endereco = null
+        formaPagamento = null
     }
 
     fun alterarQuantidade(item: ItemCarrinho, quantidade: Int) {
