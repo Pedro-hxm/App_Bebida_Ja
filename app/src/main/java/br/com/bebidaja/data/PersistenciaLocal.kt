@@ -25,7 +25,9 @@ data class ProdutoCatalogo(
     val descricao: String,
     val categoria: String,
     val precoCentavos: Long,
-    val disponivel: Boolean = true
+    val disponivel: Boolean = true,
+    val volume: String = descricao,
+    val imagemRes: Int? = null
 )
 
 data class DadosComerciaisEmpresa(
@@ -35,6 +37,44 @@ data class DadosComerciaisEmpresa(
     val horario: String,
     val areaEntrega: String
 )
+
+fun Empresa.paraDemoStore() = DemoStore(
+    id = id,
+    name = nome,
+    description = "Entrega em Goiana",
+    address = endereco,
+    phone = telefone,
+    hours = horario,
+    deliveryArea = areaEntrega,
+    regionId = regiao
+)
+
+fun ProdutoCatalogo.paraProdutoDemonstrativo() = ProdutoDemonstrativo(
+    id = id,
+    empresaId = empresaId,
+    nome = nome,
+    descricao = descricao,
+    volume = volume,
+    categoria = categoria,
+    precoCentavos = precoCentavos,
+    disponivel = disponivel,
+    imagemRes = imagemRes
+)
+
+fun ProdutoDemonstrativo.paraProdutoLocal(): ProdutoCatalogo? {
+    if (validarCamposProduto(this).isNotEmpty()) return null
+    return ProdutoCatalogo(
+        id = id,
+        empresaId = empresaId,
+        nome = nome!!.trim(),
+        descricao = descricao.orEmpty().trim(),
+        categoria = categoria!!,
+        precoCentavos = precoCentavos!!,
+        disponivel = disponivel,
+        volume = volume!!.trim(),
+        imagemRes = imagemRes
+    )
+}
 
 /** Banco local durável do protótipo. Não sincroniza entre dispositivos. */
 class RepositorioDadosLocais(context: Context) : RepositorioPedidos {
@@ -69,8 +109,13 @@ class RepositorioDadosLocais(context: Context) : RepositorioPedidos {
         "SELECT * FROM empresas WHERE ativa = 1 ORDER BY nome COLLATE NOCASE", null
     ).use { cursor -> buildList { while (cursor.moveToNext()) add(cursor.empresa()) } }
 
-    fun salvarProduto(produto: ProdutoCatalogo) {
-        helper.writableDatabase.insertWithOnConflict(
+    fun salvarProduto(produto: ProdutoCatalogo): Boolean {
+        if (produto.id.isBlank() || produto.empresaId.isBlank() || produto.nome.isBlank() || produto.volume.isBlank() || produto.categoria !in demoCategories || produto.precoCentavos <= 0L) return false
+        val existente = helper.readableDatabase.rawQuery("SELECT empresa_id FROM produtos WHERE id = ?", arrayOf(produto.id)).use { cursor ->
+            if (cursor.moveToFirst()) cursor.getString(0) else null
+        }
+        if (existente != null && existente != produto.empresaId) return false
+        val result = helper.writableDatabase.insertWithOnConflict(
             "produtos", null, ContentValues().apply {
                 put("id", produto.id)
                 put("empresa_id", produto.empresaId)
@@ -79,8 +124,11 @@ class RepositorioDadosLocais(context: Context) : RepositorioPedidos {
                 put("categoria", produto.categoria)
                 put("preco_centavos", produto.precoCentavos)
                 put("disponivel", if (produto.disponivel) 1 else 0)
+                put("volume", produto.volume)
+                if (produto.imagemRes == null) putNull("imagem_res") else put("imagem_res", produto.imagemRes)
             }, SQLiteDatabase.CONFLICT_REPLACE
         )
+        return result != -1L
     }
 
     fun listarProdutos(empresaId: String? = null, somenteDisponiveis: Boolean = false): List<ProdutoCatalogo> {
@@ -94,16 +142,14 @@ class RepositorioDadosLocais(context: Context) : RepositorioPedidos {
         ).use { cursor -> buildList { while (cursor.moveToNext()) add(cursor.produto()) } }
     }
 
-    fun removerProduto(produtoId: String, empresaId: String) {
-        helper.writableDatabase.delete("produtos", "id = ? AND empresa_id = ?", arrayOf(produtoId, empresaId))
-    }
+    fun removerProduto(produtoId: String, empresaId: String): Boolean =
+        helper.writableDatabase.delete("produtos", "id = ? AND empresa_id = ?", arrayOf(produtoId, empresaId)) == 1
 
-    fun definirDisponibilidade(produtoId: String, empresaId: String, disponivel: Boolean) {
+    fun definirDisponibilidade(produtoId: String, empresaId: String, disponivel: Boolean): Boolean =
         helper.writableDatabase.update(
             "produtos", ContentValues().apply { put("disponivel", if (disponivel) 1 else 0) },
             "id = ? AND empresa_id = ?", arrayOf(produtoId, empresaId)
-        )
-    }
+        ) == 1
 
     override fun buscarPorChaveConfirmacao(chave: String): Pedido? =
         helper.readableDatabase.rawQuery("SELECT * FROM pedidos WHERE chave = ?", arrayOf(chave))
@@ -204,7 +250,9 @@ class RepositorioDadosLocais(context: Context) : RepositorioPedidos {
         getString(getColumnIndexOrThrow("id")), getString(getColumnIndexOrThrow("empresa_id")),
         getString(getColumnIndexOrThrow("nome")), getString(getColumnIndexOrThrow("descricao")),
         getString(getColumnIndexOrThrow("categoria")), getLong(getColumnIndexOrThrow("preco_centavos")),
-        getInt(getColumnIndexOrThrow("disponivel")) == 1
+        getInt(getColumnIndexOrThrow("disponivel")) == 1,
+        getString(getColumnIndexOrThrow("volume")),
+        if (isNull(getColumnIndexOrThrow("imagem_res"))) null else getInt(getColumnIndexOrThrow("imagem_res"))
     )
 
     private fun android.database.Cursor.pedido(): Pedido {
@@ -235,10 +283,10 @@ class RepositorioDadosLocais(context: Context) : RepositorioPedidos {
     }
 }
 
-private class BancoLocal(context: Context) : SQLiteOpenHelper(context, "bebidaja.db", null, 1) {
+private class BancoLocal(context: Context) : SQLiteOpenHelper(context, "bebidaja.db", null, 2) {
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL("CREATE TABLE empresas (id TEXT PRIMARY KEY, usuario_id TEXT NOT NULL UNIQUE, nome TEXT NOT NULL, email TEXT NOT NULL, endereco TEXT NOT NULL, telefone TEXT NOT NULL, horario TEXT NOT NULL, area_entrega TEXT NOT NULL, regiao TEXT NOT NULL, ativa INTEGER NOT NULL DEFAULT 1)")
-        db.execSQL("CREATE TABLE produtos (id TEXT PRIMARY KEY, empresa_id TEXT NOT NULL, nome TEXT NOT NULL, descricao TEXT NOT NULL, categoria TEXT NOT NULL, preco_centavos INTEGER NOT NULL CHECK(preco_centavos >= 0), disponivel INTEGER NOT NULL DEFAULT 1, FOREIGN KEY(empresa_id) REFERENCES empresas(id))")
+        db.execSQL("CREATE TABLE produtos (id TEXT PRIMARY KEY, empresa_id TEXT NOT NULL, nome TEXT NOT NULL, descricao TEXT NOT NULL, volume TEXT NOT NULL DEFAULT '', categoria TEXT NOT NULL, preco_centavos INTEGER NOT NULL CHECK(preco_centavos >= 0), disponivel INTEGER NOT NULL DEFAULT 1, imagem_res INTEGER, FOREIGN KEY(empresa_id) REFERENCES empresas(id))")
         db.execSQL("CREATE INDEX produtos_empresa_idx ON produtos(empresa_id)")
         db.execSQL("CREATE TABLE pedidos (id TEXT PRIMARY KEY, chave TEXT NOT NULL UNIQUE, cliente_id TEXT NOT NULL, empresa_id TEXT NOT NULL, rua TEXT NOT NULL, numero TEXT NOT NULL, bairro TEXT NOT NULL, cidade TEXT NOT NULL, cep TEXT NOT NULL, complemento TEXT NOT NULL, subtotal INTEGER NOT NULL, total INTEGER NOT NULL, pagamento TEXT NOT NULL, comprovante TEXT NOT NULL, status TEXT NOT NULL, criado_em INTEGER NOT NULL)")
         db.execSQL("CREATE INDEX pedidos_cliente_idx ON pedidos(cliente_id, criado_em DESC)")
@@ -247,7 +295,12 @@ private class BancoLocal(context: Context) : SQLiteOpenHelper(context, "bebidaja
         inserirDadosDemonstrativos(db)
     }
 
-    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
+    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        if (oldVersion < 2) {
+            db.execSQL("ALTER TABLE produtos ADD COLUMN volume TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE produtos ADD COLUMN imagem_res INTEGER")
+        }
+    }
 
     private fun inserirDadosDemonstrativos(db: SQLiteDatabase) {
         val empresas: List<Array<Any>> = listOf(
@@ -256,11 +309,11 @@ private class BancoLocal(context: Context) : SQLiteOpenHelper(context, "bebidaja
         )
         empresas.forEach { e -> db.execSQL("INSERT INTO empresas(id,usuario_id,nome,email,endereco,telefone,horario,area_entrega,regiao) VALUES(?,?,?,?,?,?,?,?,?)", e) }
         val produtos: List<Array<Any>> = listOf(
-            arrayOf<Any>("agua-adega", "adega-central", "Água mineral", "Garrafa de 1,5 L", "Água", 450L, 1),
-            arrayOf<Any>("refri-adega", "adega-central", "Refrigerante", "Garrafa de 2 L", "Refrigerante", 990L, 1),
-            arrayOf<Any>("suco-adega", "adega-central", "Suco de uva", "Caixa de 1 L", "Suco", 750L, 1),
-            arrayOf<Any>("agua-mercado", "mercadinho-do-bairro", "Água mineral", "Garrafa de 1,5 L", "Água", 400L, 1)
+            arrayOf<Any>("agua-adega", "adega-central", "Água mineral", "Água mineral", "1,5 L", "Água", 450L, 1),
+            arrayOf<Any>("refri-adega", "adega-central", "Refrigerante", "Refrigerante", "2 L", "Refrigerante", 990L, 1),
+            arrayOf<Any>("suco-adega", "adega-central", "Suco de uva", "Suco de uva", "1 L", "Suco", 750L, 1),
+            arrayOf<Any>("agua-mercado", "mercadinho-do-bairro", "Água mineral", "Água mineral", "1,5 L", "Água", 400L, 1)
         )
-        produtos.forEach { p -> db.execSQL("INSERT INTO produtos(id,empresa_id,nome,descricao,categoria,preco_centavos,disponivel) VALUES(?,?,?,?,?,?,?)", p) }
+        produtos.forEach { p -> db.execSQL("INSERT INTO produtos(id,empresa_id,nome,descricao,volume,categoria,preco_centavos,disponivel) VALUES(?,?,?,?,?,?,?,?)", p) }
     }
 }

@@ -42,24 +42,36 @@ import br.com.bebidaja.data.DadosComerciaisEmpresa
 import br.com.bebidaja.data.Empresa
 import br.com.bebidaja.data.FormaPagamento
 import br.com.bebidaja.data.ProdutoCarrinho
+import br.com.bebidaja.data.ProdutoCatalogo
 import br.com.bebidaja.data.RepositorioAutenticacaoFirebase
 import br.com.bebidaja.data.RepositorioDadosLocais
 import br.com.bebidaja.data.TipoPerfil
+import br.com.bebidaja.data.demoCategories
+import br.com.bebidaja.data.demoStores
+import br.com.bebidaja.data.findDemoStoreById
+import br.com.bebidaja.data.mapearProdutoParaCarrinho
+import br.com.bebidaja.data.podeAdicionarAoCarrinho
+import br.com.bebidaja.data.paraDemoStore
+import br.com.bebidaja.data.paraProdutoDemonstrativo
+import br.com.bebidaja.data.paraProdutoLocal
 import br.com.bebidaja.ui.screens.CompanyScreen
 import br.com.bebidaja.ui.screens.HomeScreen
 import br.com.bebidaja.ui.screens.LoginScreen
 import br.com.bebidaja.ui.screens.OrdersScreen
 import br.com.bebidaja.ui.screens.ProfileScreen
 import br.com.bebidaja.ui.screens.RegistrationScreen
-import br.com.bebidaja.ui.screens.SearchScreen
 import br.com.bebidaja.ui.screens.SplashScreen
 import br.com.bebidaja.ui.screens.EstadoCarrinhoUi
 import br.com.bebidaja.ui.screens.TelaCarrinho
+import br.com.bebidaja.ui.screens.TelaCatalogoEmpresa
 import br.com.bebidaja.ui.screens.TelaCheckout
 import br.com.bebidaja.ui.screens.TelaComprovante
 import br.com.bebidaja.ui.screens.TelaDetalhesEmpresa
+import br.com.bebidaja.ui.screens.TelaDetalhesProduto
 import br.com.bebidaja.ui.screens.TelaEnderecoEntrega
 import br.com.bebidaja.ui.screens.TelaEscolhaDemonstracao
+import br.com.bebidaja.ui.screens.TelaGerenciamentoProdutos
+import br.com.bebidaja.ui.screens.TelaPesquisaCatalogo
 import br.com.bebidaja.ui.theme.AzulClaro
 import br.com.bebidaja.ui.theme.AzulEscuro
 import br.com.bebidaja.ui.theme.AzulMedio
@@ -86,17 +98,21 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
     val demoSession = perfilDemonstracao?.let(::criarDemoSession)
     val estadoCarrinho = remember(geracaoDemonstracao) { EstadoCarrinhoUi() }
     val uidAtual = if (usuarioAutenticado) runCatching { FirebaseAuth.getInstance().currentUser?.uid }.getOrNull() else null
+    val isBusiness = (tipoPerfilAtual ?: perfilDemonstracao) == TipoPerfil.EMPRESA
     val idEmpresa = when {
         perfilDemonstracao == TipoPerfil.EMPRESA -> "adega-central"
         tipoPerfilAtual == TipoPerfil.EMPRESA -> uidAtual
         else -> null
     }
-    val empresaAtual = idEmpresa?.let { repositorio.buscarEmpresa(it) } ?: if (tipoPerfilAtual == TipoPerfil.EMPRESA && uidAtual != null) {
+    val empresaAtual = idEmpresa?.let(repositorio::buscarEmpresa) ?: if (tipoPerfilAtual == TipoPerfil.EMPRESA && uidAtual != null) {
         Empresa(uidAtual, uidAtual, FirebaseAuth.getInstance().currentUser?.displayName.orEmpty(), FirebaseAuth.getInstance().currentUser?.email.orEmpty(), "", "", "", "")
     } else null
-    val clienteId = uidAtual ?: "cliente-demonstracao"
     val listaEmpresas = remember(dadosAlterados) { repositorio.listarEmpresas() }
-    val listaProdutos = remember(dadosAlterados) { repositorio.listarProdutos(somenteDisponiveis = true) }
+    val listaProdutos = remember(dadosAlterados) { repositorio.listarProdutos() }
+    val produtosDemonstrativos = remember(listaProdutos) { listaProdutos.map(ProdutoCatalogo::paraProdutoDemonstrativo) }
+    val empresasDemonstrativas = remember(listaEmpresas) { listaEmpresas.map(Empresa::paraDemoStore) }
+    val empresaIdGerenciada = if (isBusiness) empresaAtual?.id else null
+    val podeGerenciarProdutos = empresaIdGerenciada != null
 
     fun sairDaDemonstracao() {
         perfilDemonstracao = null; geracaoDemonstracao++; dadosAlterados++
@@ -106,8 +122,7 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
     fun entrarNoPerfil(tipo: TipoPerfil, nome: String = "", dados: DadosComerciaisEmpresa? = null) {
         perfilDemonstracao = null; usuarioAutenticado = true; tipoPerfilAtual = tipo
         val user = runCatching { FirebaseAuth.getInstance().currentUser }.getOrNull()
-        nomeUsuario = nome.ifBlank { user?.displayName.orEmpty() }
-        emailUsuario = user?.email.orEmpty()
+        nomeUsuario = nome.ifBlank { user?.displayName.orEmpty() }; emailUsuario = user?.email.orEmpty()
         if (tipo == TipoPerfil.EMPRESA && user != null && dados != null) {
             repositorio.salvarEmpresa(Empresa(user.uid, user.uid, dados.nome, user.email.orEmpty(), dados.endereco, dados.telefone, dados.horario, dados.areaEntrega))
             dadosAlterados++
@@ -129,7 +144,6 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
             .addOnFailureListener { usuarioAutenticado = false }
     }
 
-    val isBusiness = (tipoPerfilAtual ?: perfilDemonstracao) == TipoPerfil.EMPRESA
     val tabs = if (isBusiness) listOf(
         AppTab("company", "Empresa", Icons.Filled.Home), AppTab("profile", "Perfil", Icons.Filled.Person)
     ) else listOf(
@@ -146,15 +160,16 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
             popUpTo("escolha") { inclusive = true }; launchSingleTop = true
         }
     }
-    fun adicionarAoCarrinho(produto: br.com.bebidaja.data.ProdutoCatalogo) {
-        if (isBusiness) return
-        val empresaNoCarrinho = estadoCarrinho.carrinho.itens.firstOrNull()?.produto?.empresaId
-        if (empresaNoCarrinho != null && empresaNoCarrinho != produto.empresaId) {
-            Toast.makeText(contexto, "Finalize ou limpe o carrinho antes de escolher outra empresa.", Toast.LENGTH_SHORT).show()
-            return
+    fun adicionarAoCarrinho(produto: br.com.bebidaja.data.ProdutoDemonstrativo): Boolean {
+        if (!podeAdicionarAoCarrinho(produto, estadoCarrinho.carrinho)) {
+            Toast.makeText(contexto, "Escolha produtos de uma única empresa e verifique a disponibilidade.", Toast.LENGTH_SHORT).show()
+            return false
         }
-        estadoCarrinho.adicionar(ProdutoCarrinho(produto.id, produto.empresaId, produto.nome, produto.precoCentavos))
+        val item = mapearProdutoParaCarrinho(produto) ?: return false
+        estadoCarrinho.adicionar(item)
+        return true
     }
+    fun abrirDetalheProduto(id: String) { navController.navigate("produto-detalhe/${Uri.encode(id)}") }
 
     Scaffold(
         topBar = {
@@ -163,17 +178,15 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
                 horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically
             ) {
                 if (demoSession != null) Text("DEMONSTRAÇÃO", color = AzulMedio, modifier = Modifier.weight(1f).padding(start = 24.dp))
-                if (!isBusiness) FilledTonalIconButton(
-                    onClick = { navController.navigate("cart") { launchSingleTop = true } },
-                    colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = AzulClaro, contentColor = AzulEscuro)
-                ) { Icon(Icons.Filled.ShoppingCart, contentDescription = "Carrinho", tint = AzulEscuro) }
+                if (!isBusiness) FilledTonalIconButton(onClick = { navController.navigate("cart") { launchSingleTop = true } }, colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = AzulClaro, contentColor = AzulEscuro)) {
+                    Icon(Icons.Filled.ShoppingCart, contentDescription = "Carrinho", tint = AzulEscuro)
+                }
             }
         },
         bottomBar = {
             if (tabs.any { it.route == currentRoute } || (!isBusiness && currentRoute == "cart")) NavigationBar(containerColor = Branco, tonalElevation = 0.dp) {
                 tabs.forEach { tab -> NavigationBarItem(
-                    selected = currentRoute == tab.route,
-                    onClick = { navController.openTab(tab.route) },
+                    selected = currentRoute == tab.route, onClick = { navController.openTab(tab.route) },
                     icon = { Icon(tab.icon, contentDescription = tab.label) }, label = { Text(tab.label) },
                     colors = NavigationBarItemDefaults.colors(selectedIconColor = AzulEscuro, selectedTextColor = AzulEscuro, indicatorColor = AzulClaro, unselectedIconColor = AzulMedio, unselectedTextColor = AzulMedio)
                 ) }
@@ -190,13 +203,45 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
             }, { tipo -> entrarNoPerfil(tipo) }) }
             composable("cadastro") { RegistrationScreen(firebaseDisponivel, { navController.popBackStack() }, ::entrarNoPerfil) }
             composable("home") {
-                HomeScreen(listaEmpresas, listaProdutos, { navController.openTab("search") }, { id -> navController.navigate("empresa/${Uri.encode(id)}") }, ::adicionarAoCarrinho)
+                HomeScreen(listaEmpresas, listaProdutos, { navController.openTab("search") },
+                    { id -> navController.navigate("empresa/${Uri.encode(id)}") }, ::abrirDetalheProduto,
+                    { produto -> adicionarAoCarrinho(produto.paraProdutoDemonstrativo()) })
             }
             composable("empresa/{empresaId}") { entry ->
                 val id = entry.arguments?.getString("empresaId").orEmpty()
-                TelaDetalhesEmpresa(repositorio.buscarEmpresa(id), remember(id, dadosAlterados) { repositorio.listarProdutos(id, true) }, ::adicionarAoCarrinho) { navController.popBackStack() }
+                TelaDetalhesEmpresa(repositorio.buscarEmpresa(id), remember(id, dadosAlterados) { repositorio.listarProdutos(id, true) },
+                    { navController.navigate("empresa/${Uri.encode(id)}/catalogo") }, { navController.popBackStack() })
             }
-            composable("search") { SearchScreen(listaProdutos, ::adicionarAoCarrinho) }
+            composable("empresa/{empresaId}/catalogo") { entry ->
+                val id = entry.arguments?.getString("empresaId").orEmpty()
+                val empresa = repositorio.buscarEmpresa(id)?.paraDemoStore()
+                TelaCatalogoEmpresa(empresa, remember(id, dadosAlterados) { repositorio.listarProdutos(id).map(ProdutoCatalogo::paraProdutoDemonstrativo) },
+                    { navController.popBackStack() }, ::abrirDetalheProduto, ::adicionarAoCarrinho)
+            }
+            composable("produto-detalhe/{produtoId}") { entry ->
+                val id = entry.arguments?.getString("produtoId").orEmpty()
+                val produto = repositorio.listarProdutos().firstOrNull { it.id == id }?.paraProdutoDemonstrativo()
+                val empresa = produto?.let { repositorio.buscarEmpresa(it.empresaId)?.paraDemoStore() }
+                TelaDetalhesProduto(produto, empresa, { navController.popBackStack() }, ::adicionarAoCarrinho)
+            }
+            composable("empresa/{empresaId}/produtos") { entry ->
+                val id = entry.arguments?.getString("empresaId").orEmpty()
+                if (podeGerenciarProdutos && id == empresaIdGerenciada) {
+                    val empresa = repositorio.buscarEmpresa(id)
+                    TelaGerenciamentoProdutos(
+                        empresaId = id, empresa = empresa?.paraDemoStore(), nomeEmpresa = empresa?.nome ?: "Empresa",
+                        produtos = repositorio.listarProdutos(id).map(ProdutoCatalogo::paraProdutoDemonstrativo),
+                        onVoltar = { navController.popBackStack() },
+                        onSalvarProduto = { produto -> val local = produto.paraProdutoLocal(); val salvo = local != null && repositorio.salvarProduto(local); if (salvo) dadosAlterados++; salvo },
+                        onAlterarDisponibilidade = { productId, companyId, available -> val updated = companyId == id && repositorio.definirDisponibilidade(productId, id, available); if (updated) dadosAlterados++; updated },
+                        onRemoverProduto = { productId, companyId -> val removed = companyId == id && repositorio.removerProduto(productId, id); if (removed) dadosAlterados++; removed }
+                    )
+                }
+            }
+            composable("search") {
+                TelaPesquisaCatalogo(produtosDemonstrativos, empresasDemonstrativas,
+                    { id -> navController.navigate("empresa/${Uri.encode(id)}") }, ::abrirDetalheProduto, ::adicionarAoCarrinho)
+            }
             composable("cart") { if (!isBusiness) TelaCarrinho(estadoCarrinho) { if (!estadoCarrinho.carrinho.estaVazio) navController.navigate("endereco") } }
             composable("endereco") { if (!isBusiness) TelaEnderecoEntrega(estadoCarrinho.endereco, { estadoCarrinho.salvarEndereco(it) }, { navController.navigate("checkout") }) }
             composable("checkout") {
@@ -211,34 +256,34 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
                 if (!isBusiness && forma != null && !estadoCarrinho.carrinho.estaVazio) TelaComprovante(
                     forma, estadoCarrinho.carrinho.totalCentavos,
                     onCriarPedido = {
-                        val result = repositorio.confirmarPedido(clienteId, estadoCarrinho.carrinho, estadoCarrinho.endereco, forma, "DEMO-BEBIDAJA-001", estadoCarrinho.chaveConfirmacao)
+                        val result = repositorio.confirmarPedido("${uidAtual ?: "cliente-demonstracao"}", estadoCarrinho.carrinho, estadoCarrinho.endereco, forma,
+                            "DEMO-BEBIDAJA-001", estadoCarrinho.chaveConfirmacao)
                         if (result.isSuccess) { estadoCarrinho.limparCarrinho(); dadosAlterados++ }
                         result
-                    },
-                    onPedidoCriado = { navController.navigate("orders") { popUpTo("home"); launchSingleTop = true } }
+                    }, onPedidoCriado = { navController.navigate("orders") { popUpTo("home"); launchSingleTop = true } }
                 ) else LaunchedEffect(Unit) { navController.popBackStack("cart", false) }
             }
-            composable("orders") { if (!isBusiness) OrdersScreen(remember(clienteId, dadosAlterados) { repositorio.listarPorCliente(clienteId) }) }
+            composable("orders") { if (!isBusiness) OrdersScreen(remember(uidAtual, dadosAlterados) { repositorio.listarPorCliente(uidAtual ?: "cliente-demonstracao") }) }
             composable("profile") {
                 val authUser = runCatching { FirebaseAuth.getInstance().currentUser }.getOrNull()
-                ProfileScreen(
-                    tipoPerfil = demoSession?.tipoPerfil ?: tipoPerfilAtual, demoSession = demoSession,
+                ProfileScreen(tipoPerfil = demoSession?.tipoPerfil ?: tipoPerfilAtual, demoSession = demoSession,
                     mostrarSaida = usuarioAutenticado || demoSession != null, empresa = empresaAtual,
-                    nome = authUser?.displayName.orEmpty().ifBlank { nomeUsuario.ifBlank { demoSession?.nome.orEmpty() } }, email = authUser?.email.orEmpty().ifBlank { emailUsuario.ifBlank { demoSession?.email.orEmpty() } },
+                    nome = authUser?.displayName.orEmpty().ifBlank { nomeUsuario.ifBlank { demoSession?.nome.orEmpty() } },
+                    email = authUser?.email.orEmpty().ifBlank { emailUsuario.ifBlank { demoSession?.email.orEmpty() } },
                     onCompanyClick = { if (isBusiness) navController.navigate("company") { launchSingleTop = true } },
                     onOrdersClick = { if (!isBusiness) navController.openTab("orders") },
-                    onSignOutClick = { if (demoSession != null) sairDaDemonstracao() else encerrarSessao() }
-                )
+                    onSignOutClick = { if (demoSession != null) sairDaDemonstracao() else encerrarSessao() })
             }
             composable("company") {
                 val empresa = empresaAtual
                 if (isBusiness && empresa != null) CompanyScreen(
                     repositorio = repositorio, empresaInicial = empresa,
                     pedidos = remember(empresa.id, dadosAlterados) { repositorio.listarPorEmpresa(empresa.id) },
-                    aoAlterarDados = { dadosAlterados++ }, onBackClick = { navController.popBackStack() },
+                    aoAlterarDados = { dadosAlterados++ },
+                    onManageProductsClick = { navController.navigate("empresa/${Uri.encode(empresa.id)}/produtos") },
+                    onBackClick = { navController.popBackStack() },
                     onProfileClick = { navController.navigate("profile") { launchSingleTop = true } },
-                    onSignOutClick = { if (demoSession != null) sairDaDemonstracao() else encerrarSessao() }
-                )
+                    onSignOutClick = { if (demoSession != null) sairDaDemonstracao() else encerrarSessao() })
             }
         }
     }

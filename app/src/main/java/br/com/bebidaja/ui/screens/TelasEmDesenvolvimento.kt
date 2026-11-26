@@ -29,6 +29,7 @@ import br.com.bebidaja.data.RepositorioDadosLocais
 import br.com.bebidaja.data.TipoPerfil
 import br.com.bebidaja.data.Pedido
 import br.com.bebidaja.data.StatusPedido
+import br.com.bebidaja.data.converterPrecoParaCentavos
 import br.com.bebidaja.ui.navigation.DemoSession
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -89,6 +90,7 @@ fun CompanyScreen(
     empresaInicial: Empresa,
     pedidos: List<Pedido>,
     aoAlterarDados: () -> Unit,
+    onManageProductsClick: () -> Unit,
     onBackClick: () -> Unit,
     onProfileClick: () -> Unit,
     onSignOutClick: () -> Unit
@@ -124,18 +126,21 @@ fun CompanyScreen(
             }, modifier = Modifier.fillMaxWidth()) { Text("Salvar dados comerciais") }
         }
         item { Text("Produtos", style = MaterialTheme.typography.titleLarge) }
+        item { Button(onClick = onManageProductsClick, modifier = Modifier.fillMaxWidth()) { Text("Abrir gerenciamento completo do catálogo") } }
         item { OutlinedTextField(produtoNome, { produtoNome = it }, Modifier.fillMaxWidth(), label = { Text("Nome do produto") }, singleLine = true) }
         item { OutlinedTextField(descricao, { descricao = it }, Modifier.fillMaxWidth(), label = { Text("Volume ou descrição") }, singleLine = true) }
         item { OutlinedTextField(categoria, { categoria = it }, Modifier.fillMaxWidth(), label = { Text("Categoria") }, singleLine = true) }
         item { OutlinedTextField(preco, { preco = it }, Modifier.fillMaxWidth(), label = { Text("Preço (ex.: 9,90)") }, singleLine = true) }
         item {
             Button(onClick = {
-                val centavos = preco.trim().replace(".", "").replace(",", ".").toBigDecimalOrNull()?.movePointRight(2)?.longValueExactOrNull()
+                val centavos = converterPrecoParaCentavos(preco)
                 if (produtoNome.isBlank() || descricao.isBlank() || categoria.isBlank() || centavos == null || centavos <= 0L) {
                     erro = "Informe nome, descrição, categoria e preço válido."
                 } else {
-                    repositorio.salvarProduto(ProdutoCatalogo(produtoEmEdicao ?: UUID.randomUUID().toString(), empresaInicial.id, produtoNome.trim(), descricao.trim(), categoria.trim(), centavos))
-                    produtoEmEdicao = null; produtoNome = ""; descricao = ""; categoria = ""; preco = ""; erro = null; aoAlterarDados()
+                    val salvo = repositorio.salvarProduto(ProdutoCatalogo(produtoEmEdicao ?: UUID.randomUUID().toString(), empresaInicial.id, produtoNome.trim(), descricao.trim(), categoria.trim(), centavos, volume = descricao.trim()))
+                    if (salvo) {
+                        produtoEmEdicao = null; produtoNome = ""; descricao = ""; categoria = ""; preco = ""; erro = null; aoAlterarDados()
+                    } else erro = "Confira os campos: use uma categoria cadastrada e preço positivo."
                 }
             }, modifier = Modifier.fillMaxWidth()) { Text(if (produtoEmEdicao == null) "Cadastrar produto" else "Salvar produto") }
         }

@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -25,7 +26,7 @@ import java.text.NumberFormat
 import java.util.Locale
 
 @Composable
-fun TelaDetalhesEmpresa(empresa: Empresa?, produtos: List<ProdutoCatalogo>, onAddToCart: (ProdutoCatalogo) -> Unit, onVoltar: () -> Unit) {
+fun TelaDetalhesEmpresa(empresa: Empresa?, produtos: List<ProdutoCatalogo>, onVerCatalogo: () -> Unit, onVoltar: () -> Unit) {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             IconButton(onVoltar) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar") }
@@ -36,18 +37,8 @@ fun TelaDetalhesEmpresa(empresa: Empresa?, produtos: List<ProdutoCatalogo>, onAd
             item { Text("Telefone: ${empresa.telefone}") }
             item { Text("Funcionamento: ${empresa.horario}") }
             item { Text("Entrega: ${empresa.areaEntrega}") }
-            item { Text("Produtos", style = MaterialTheme.typography.titleLarge) }
-            if (produtos.isEmpty()) item { Text("Este estabelecimento ainda não tem produtos disponíveis.") }
-            items(produtos.filter { it.empresaId == empresa.id && it.disponivel }, key = { it.id }) { produto ->
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(produto.nome, style = MaterialTheme.typography.titleMedium)
-                        Text("${produto.descricao} · ${produto.categoria}")
-                        Text(NumberFormat.getCurrencyInstance(Locale.forLanguageTag("pt-BR")).format(produto.precoCentavos / 100.0))
-                        Button(onClick = { onAddToCart(produto) }) { Text("Adicionar ao carrinho") }
-                    }
-                }
-            }
+            item { Text("Produtos disponíveis: ${produtos.count { it.empresaId == empresa.id && it.disponivel }}") }
+            item { Button(onClick = onVerCatalogo, modifier = Modifier.fillMaxWidth()) { Text("Ver catálogo") } }
         }
     }
 }
