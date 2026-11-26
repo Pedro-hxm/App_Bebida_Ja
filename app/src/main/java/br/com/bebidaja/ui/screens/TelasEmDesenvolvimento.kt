@@ -26,14 +26,6 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-fun SearchScreen() {
-    PlaceholderScreen(
-        title = "Buscar bebidas",
-        message = "A busca e os filtros serão desenvolvidos nas próximas etapas."
-    )
-}
-
-@Composable
 fun OrdersScreen(pedidos: List<Pedido>) {
     if (pedidos.isEmpty()) {
         Column(
@@ -128,6 +120,8 @@ fun CompanyScreen(
     onBackClick: () -> Unit,
     demoSession: DemoSession?,
     mostrarSaida: Boolean,
+    podeGerenciarProdutos: Boolean,
+    onManageProductsClick: () -> Unit,
     onProfileClick: () -> Unit,
     onSignOutClick: () -> Unit
 ) {
@@ -145,7 +139,18 @@ fun CompanyScreen(
             Text("Perfil: Empresa")
             TextButton(onClick = onProfileClick) { Text("Ver perfil demonstrativo") }
         }
-        Text("Cadastro comercial e painel serão desenvolvidos nas próximas etapas.")
+        Text(
+            "Gerencie o catálogo temporário de bebidas. As alterações não são persistidas.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        if (podeGerenciarProdutos) {
+            Button(
+                onClick = onManageProductsClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Gerenciar catálogo de bebidas")
+            }
+        }
         Button(onClick = onBackClick) {
             Text("Voltar")
         }
@@ -154,19 +159,5 @@ fun CompanyScreen(
                 Text(if (demoSession != null) "Sair da demonstração" else "Sair da conta")
             }
         }
-    }
-}
-
-@Composable
-private fun PlaceholderScreen(title: String, message: String) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        horizontalAlignment = Alignment.Start
-    ) {
-        Text(title, style = MaterialTheme.typography.headlineMedium)
-        Text(message)
     }
 }

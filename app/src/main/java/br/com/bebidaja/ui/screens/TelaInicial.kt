@@ -30,12 +30,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import br.com.bebidaja.R
-import br.com.bebidaja.data.demoBeverages
+import br.com.bebidaja.data.ProdutoDemonstrativo
 import br.com.bebidaja.data.demoCategories
 import br.com.bebidaja.data.demoRegions
 import br.com.bebidaja.data.demoStores
 import br.com.bebidaja.data.filterDemoStoresByRegion
-import br.com.bebidaja.ui.components.BeverageCard
+import br.com.bebidaja.ui.components.CardProduto
 import br.com.bebidaja.ui.components.CategoryChoice
 import br.com.bebidaja.ui.components.SectionTitle
 import br.com.bebidaja.ui.components.StoreCard
@@ -43,13 +43,20 @@ import br.com.bebidaja.ui.theme.AzulClaro
 
 @Composable
 fun HomeScreen(
+    produtos: List<ProdutoDemonstrativo>,
     onSearchClick: () -> Unit,
     onStoreClick: (String) -> Unit,
-    onAddToCart: (br.com.bebidaja.data.DemoBeverage) -> Unit
+    onProductClick: (String) -> Unit,
+    onAddToCart: (ProdutoDemonstrativo) -> Boolean
 ) {
-    var selectedCategory by rememberSaveable { mutableStateOf(demoCategories.first()) }
+    var selectedCategory by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedRegionId by rememberSaveable { mutableStateOf<String?>(null) }
     val filteredStores = filterDemoStoresByRegion(demoStores, selectedRegionId)
+    val storeIds = filteredStores.mapTo(mutableSetOf()) { it.id }
+    val filteredProducts = produtos.filter { produto ->
+        produto.empresaId in storeIds &&
+            (selectedCategory == null || produto.categoria == selectedCategory)
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxWidth(),
@@ -105,16 +112,25 @@ fun HomeScreen(
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 SectionTitle("Categorias")
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(demoCategories) { category ->
+                    item(key = "todas-categorias") {
+                        CategoryChoice(
+                            label = "Todas",
+                            selected = selectedCategory == null,
+                            onClick = { selectedCategory = null }
+                        )
+                    }
+                    items(demoCategories, key = { it }) { category ->
                         CategoryChoice(
                             label = category,
                             selected = selectedCategory == category,
-                            onClick = { selectedCategory = category }
+                            onClick = {
+                                selectedCategory = if (selectedCategory == category) null else category
+                            }
                         )
                     }
                 }
                 Text(
-                    "Seleção visual de demonstração",
+                    "Categorias demonstrativas. Toque para filtrar os produtos em destaque.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -140,7 +156,9 @@ fun HomeScreen(
                         CategoryChoice(
                             label = region.name,
                             selected = selectedRegionId == region.id,
-                            onClick = { selectedRegionId = region.id }
+                            onClick = {
+                                selectedRegionId = if (selectedRegionId == region.id) null else region.id
+                            }
                         )
                     }
                 }
@@ -170,15 +188,31 @@ fun HomeScreen(
             }
         }
         item { SectionTitle("Bebidas em destaque") }
-        items(demoBeverages) { beverage ->
-            BeverageCard(beverage) { onAddToCart(beverage) }
-        }
         item {
             Text(
-                "Conteúdo ilustrativo para a base visual.",
+                "Produtos, preços e disponibilidade são fictícios e servem apenas para demonstração.",
                 style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(bottom = 12.dp)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+        if (filteredProducts.isEmpty()) {
+            item {
+                Text(
+                    "Nenhuma bebida nesta categoria para a região selecionada.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        } else {
+            items(filteredProducts, key = { it.id }) { product ->
+                val storeName = demoStores.firstOrNull { it.id == product.empresaId }?.name
+                CardProduto(
+                    produto = product,
+                    nomeEmpresa = storeName,
+                    onDetalhes = { onProductClick(product.id) },
+                    onAdicionar = { onAddToCart(product) }
+                )
+            }
+        }
+        item { Text("", modifier = Modifier.padding(bottom = 8.dp)) }
     }
 }
