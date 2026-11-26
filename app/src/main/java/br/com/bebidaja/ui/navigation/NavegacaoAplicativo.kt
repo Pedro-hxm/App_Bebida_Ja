@@ -20,6 +20,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -234,7 +235,9 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
                         onIrParaComprovante = { navController.navigate("comprovante") }
                     )
                 } else {
-                    navController.popBackStack("cart", inclusive = false)
+                    LaunchedEffect(Unit) {
+                        navController.popBackStack("cart", inclusive = false)
+                    }
                 }
             }
             composable("comprovante") {
@@ -263,7 +266,9 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
                         }
                     )
                 } else {
-                    navController.popBackStack("cart", inclusive = false)
+                    LaunchedEffect(Unit) {
+                        navController.popBackStack("cart", inclusive = false)
+                    }
                 }
             }
             composable("orders") {
@@ -289,6 +294,7 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
 }
 
 private fun NavHostController.openTab(route: String) {
+    if (currentDestination?.route == route) return
     navigate(route) {
         popUpTo("home")
         launchSingleTop = true
