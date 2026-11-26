@@ -19,8 +19,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -36,8 +38,12 @@ import br.com.bebidaja.data.RepositorioAutenticacaoFirebase
 import br.com.bebidaja.data.TipoPerfil
 import br.com.bebidaja.ui.components.SeletorImagemLocal
 
+private class TelaDeAcessoAtiva(var ativa: Boolean = true)
+
 @Composable
 fun LoginScreen(firebaseDisponivel: Boolean, onRegisterClick: () -> Unit, onExploreClick: () -> Unit, onLoginSuccess: (TipoPerfil) -> Unit) {
+    val tela = remember { TelaDeAcessoAtiva() }
+    DisposableEffect(tela) { tela.ativa = true; onDispose { tela.ativa = false } }
     var email by rememberSaveable { mutableStateOf("") }
     var senha by rememberSaveable { mutableStateOf("") }
     var carregando by rememberSaveable { mutableStateOf(false) }
@@ -54,6 +60,7 @@ fun LoginScreen(firebaseDisponivel: Boolean, onRegisterClick: () -> Unit, onExpl
                 !Patterns.EMAIL_ADDRESS.matcher(normalizado).matches() -> mensagem = "Informe um e-mail válido."
                 senha.isBlank() -> mensagem = "Informe sua senha."
                 else -> { carregando = true; mensagem = null; RepositorioAutenticacaoFirebase.entrar(normalizado, senha) { result ->
+                    if (!tela.ativa) return@entrar
                     carregando = false; result.onSuccess(onLoginSuccess).onFailure { erro ->
                         mensagem = if (erro is PerfilIncompletoException) "Seu cadastro está incompleto. Crie uma conta para concluí-lo." else "Não foi possível entrar. Confira os dados e tente novamente."
                     }
@@ -73,6 +80,8 @@ fun RegistrationScreen(
     onBackClick: () -> Unit,
     onRegistrationSuccess: (TipoPerfil, String, DadosComerciaisEmpresa?) -> Unit
 ) {
+    val tela = remember { TelaDeAcessoAtiva() }
+    DisposableEffect(tela) { tela.ativa = true; onDispose { tela.ativa = false } }
     var nome by rememberSaveable { mutableStateOf("") }
     var email by rememberSaveable { mutableStateOf("") }
     var senha by rememberSaveable { mutableStateOf("") }
@@ -119,6 +128,7 @@ fun RegistrationScreen(
                 else -> {
                     carregando = true; mensagem = null
                     RepositorioAutenticacaoFirebase.criarConta(n, e, senha, tipo) { resultado ->
+                        if (!tela.ativa) return@criarConta
                         carregando = false
                         resultado.onSuccess { perfil -> onRegistrationSuccess(perfil, n, comercial) }.onFailure {
                             mensagem = "Não foi possível criar a conta. Confira os dados e tente novamente."
