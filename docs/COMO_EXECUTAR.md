@@ -1,6 +1,6 @@
 # Abrir e executar o BebidaJá no Android Studio
 
-Este passo a passo cobre a base visual atual. As telas de login, busca funcional, carrinho e pedidos ainda não estão implementadas.
+Este passo a passo cobre a versão integrada local. O acesso demonstrativo não depende de conta; o acesso real depende da configuração Firebase. Empresas, catálogo e pedidos ficam no SQLite do aparelho e não sincronizam entre dispositivos.
 
 ## 1. Abra a pasta correta
 
@@ -36,7 +36,9 @@ O aplicativo compila com API 37 e pode ser executado em emuladores Android API 2
 2. Selecione o emulador que acabou de iniciar como dispositivo de destino.
 3. Clique no botão verde Run.
 4. Aguarde a instalação e a abertura do BebidaJá.
-5. Na tela inicial, toque em Conhecer demonstração. Use a barra inferior para navegar entre Início, Buscar, Pedidos e Perfil.
+5. Na escolha de experiência, selecione **Explorar como cliente** ou **Explorar como empresa**. No cliente, use Início, Pesquisa, Pedidos e Perfil. Para trocar de perfil, abra Perfil e escolha **Sair da demonstração**. O comprovante e o pagamento são fictícios.
+
+Para compilar: `./gradlew.bat :app:assembleDebug`. No Windows com caminho contendo acentos, execute `./test-unit.ps1` para os testes unitários; ele usa uma unidade temporária de caminho ASCII. Com emulador conectado (`adb devices`), execute `./gradlew.bat :app:connectedDebugAndroidTest`. A primeira execução pode exigir acesso à rede para baixar dependências.
 
 Se a configuração app não aparecer, abra Run > Edit Configurations, adicione uma configuração Android App e selecione o módulo app.
 

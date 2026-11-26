@@ -15,6 +15,8 @@
 > [!IMPORTANT]
 > **Fonte oficial do escopo:** `Plano_Projeto_BebidaJa (1).pdf`, documento apresentado ao professor. Este README descreve **todo o escopo planejado**, e não apenas uma demonstração reduzida. Funcionalidades aqui listadas **não devem ser interpretadas como já implementadas**. A execução e o progresso devem ser atualizados conforme o código for integrado.
 
+O estado e as evidências desta versão estão em [auditoria de requisitos](docs/produto/auditoria-requisitos.md), [estado atual](docs/produto/estado-atual.md) e [roteiro de demonstração](docs/apresentacao/roteiro-demonstracao.md).
+
 ## Sumário
 
 - [Sobre o projeto](#sobre-o-projeto)
@@ -67,7 +69,7 @@ As **14 funcionalidades abaixo** reproduzem o escopo funcional do documento ofic
 | 13 | **Histórico de pedidos** do cliente. |
 | 14 | **Painel da empresa** para visualizar pedidos recebidos e gerenciar o catálogo. |
 
-A implementação pode ser organizada em etapas, mas **a organização das sprints não altera o escopo originalmente proposto**. O documento [`CONTROLE_INTERNO.md`](./CONTROLE_INTERNO.md) detalha os responsáveis, critérios de aceite, dependências e entregas.
+A implementação pode ser organizada em etapas, mas **a organização das sprints não altera o escopo originalmente proposto**. O documento [`CONTROLE_INTERNO.md`](./docs/CONTROLE_INTERNO.md) detalha os responsáveis, critérios de aceite, dependências e entregas.
 
 ## Estrutura de telas
 

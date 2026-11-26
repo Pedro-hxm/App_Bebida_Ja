@@ -84,6 +84,43 @@ class PedidosTest {
         assertTrue(resultado.isFailure)
         assertTrue(repositorio.listarPorCliente("cliente-teste").isEmpty())
     }
+    @Test
+    fun falhaAoConsultarPersistenciaRetornaErroSemLancarExcecao() {
+        val repositorio = object : RepositorioPedidos {
+            override fun buscarPorChaveConfirmacao(chave: String): Pedido? = error("Falha de leitura")
+            override fun salvar(pedido: Pedido): Pedido = error("Não deve salvar")
+            override fun listarPorCliente(clienteId: String): List<Pedido> = emptyList()
+        }
+        val resultado = repositorio.confirmarPedido("cliente", criarCarrinho(), enderecoValido,
+            FormaPagamento.PIX, "DEMO-TESTE", "chave")
+        assertTrue(resultado.isFailure)
+        assertEquals("Falha de leitura", resultado.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun falhaAoSalvarRetornaErroEPreservaCarrinhoParaNovaTentativa() {
+        val carrinho = criarCarrinho()
+        val repositorio = object : RepositorioPedidos {
+            override fun buscarPorChaveConfirmacao(chave: String): Pedido? = null
+            override fun salvar(pedido: Pedido): Pedido = error("Falha de gravação")
+            override fun listarPorCliente(clienteId: String): List<Pedido> = emptyList()
+        }
+        val resultado = repositorio.confirmarPedido("cliente", carrinho, enderecoValido,
+            FormaPagamento.PIX, "DEMO-TESTE", "chave")
+        assertTrue(resultado.isFailure)
+        assertEquals("Falha de gravação", resultado.exceptionOrNull()?.message)
+        assertEquals(2, carrinho.itens.single().quantidade)
+        assertEquals(900L, carrinho.totalCentavos)
+    }
+
+    @Test
+    fun enderecoInvalidoNaoCriaPedido() {
+        val repositorio = RepositorioPedidosFake()
+        val resultado = repositorio.confirmarPedido("cliente", criarCarrinho(),
+            enderecoValido.copy(cep = "123"), FormaPagamento.PIX, "DEMO-TESTE", "chave")
+        assertTrue(resultado.isFailure)
+        assertTrue(repositorio.listarPorCliente("cliente").isEmpty())
+    }
 }
 
 private class RepositorioPedidosFake : RepositorioPedidos {

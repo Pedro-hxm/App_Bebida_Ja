@@ -1,6 +1,7 @@
 package br.com.bebidaja.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -55,10 +56,20 @@ fun SearchScreen(produtos: List<ProdutoCatalogo>, onAddToCart: (ProdutoCatalogo)
 
 @Composable
 fun OrdersScreen(pedidos: List<Pedido>) {
+    var pedidoSelecionado by rememberSaveable { mutableStateOf<String?>(null) }
+    val selecionado = pedidos.firstOrNull { it.id == pedidoSelecionado }
+    BackHandler(enabled = selecionado != null) { pedidoSelecionado = null }
+    if (selecionado != null) {
+        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            item { TextButton(onClick = { pedidoSelecionado = null }) { Text("Voltar ao histórico") } }
+            item { DetalhesPedido(selecionado) }
+        }
+        return
+    }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { Text("Histórico de pedidos", style = MaterialTheme.typography.headlineMedium) }
         if (pedidos.isEmpty()) item { Text("Você ainda não tem pedidos.") }
-        items(pedidos, key = { it.id }) { PedidoCard(it) }
+        items(pedidos, key = { it.id }) { pedido -> PedidoCard(pedido, onDetalhes = { pedidoSelecionado = pedido.id }) }
     }
 }
 
@@ -114,6 +125,7 @@ fun CompanyScreen(
     var imagemProduto by rememberSaveable { mutableStateOf<String?>(null) }
     var produtoEmEdicao by rememberSaveable { mutableStateOf<String?>(null) }
     var erro by rememberSaveable { mutableStateOf<String?>(null) }
+    var mensagemPedido by rememberSaveable { mutableStateOf<String?>(null) }
     val produtos = repositorio.listarProdutos(empresaInicial.id)
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -173,16 +185,21 @@ fun CompanyScreen(
             }
         }
         item { Text("Pedidos recebidos", style = MaterialTheme.typography.titleLarge) }
+        mensagemPedido?.let { mensagem -> item { Text(mensagem) } }
         if (pedidos.isEmpty()) item { Text("Nenhum pedido recebido ainda.") }
         items(pedidos, key = { it.id }) {
-            PedidoCard(it, acaoStatus = {
+            PedidoCard(it, mostrarDetalhesNoCard = true, acaoStatus = {
                 val proximo = when (it.status) {
                     StatusPedido.RECEBIDO -> StatusPedido.EM_PREPARACAO
                     StatusPedido.EM_PREPARACAO -> StatusPedido.SAIU_PARA_ENTREGA
                     StatusPedido.SAIU_PARA_ENTREGA -> StatusPedido.ENTREGUE
                     StatusPedido.ENTREGUE -> null
                 }
-                if (proximo != null) { repositorio.atualizarStatus(it.id, empresaInicial.id, proximo); aoAlterarDados() }
+                if (proximo != null) {
+                    val atualizado = runCatching { repositorio.atualizarStatus(it.id, empresaInicial.id, proximo) }.getOrDefault(false)
+                    mensagemPedido = if (atualizado) "Status atualizado: ${proximo.descricao}." else "Não foi possível atualizar o status. Atualize a lista e tente novamente."
+                    aoAlterarDados()
+                }
             })
         }
         item {
@@ -196,13 +213,19 @@ fun CompanyScreen(
 }
 
 @Composable
-private fun PedidoCard(pedido: Pedido, acaoStatus: (() -> Unit)? = null) {
+private fun PedidoCard(pedido: Pedido, acaoStatus: (() -> Unit)? = null, onDetalhes: (() -> Unit)? = null, mostrarDetalhesNoCard: Boolean = false) {
+    var expandido by rememberSaveable(pedido.id) { mutableStateOf(false) }
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("Pedido #${pedido.id.take(8)}", style = MaterialTheme.typography.titleMedium)
             Text("${formatarData(pedido.criadoEmMillis)} · ${pedido.status.descricao}")
             pedido.itens.forEach { Text("${it.quantidade} × ${it.nomeProduto}") }
             Text("Total: ${formatarValor(pedido.totalCentavos)}")
+            if (onDetalhes != null) TextButton(onClick = onDetalhes) { Text("Ver detalhes e acompanhamento") }
+            if (mostrarDetalhesNoCard) {
+                TextButton(onClick = { expandido = !expandido }) { Text(if (expandido) "Ocultar detalhes" else "Ver detalhes") }
+                if (expandido) DetalhesPedido(pedido)
+            }
             if (acaoStatus != null && pedido.status != StatusPedido.ENTREGUE) {
                 val proximo = when (pedido.status) {
                     StatusPedido.RECEBIDO -> "Aceitar e preparar"
@@ -213,6 +236,32 @@ private fun PedidoCard(pedido: Pedido, acaoStatus: (() -> Unit)? = null) {
                 Button(onClick = acaoStatus) { Text(proximo) }
             }
         }
+    }
+}
+
+@Composable
+private fun DetalhesPedido(pedido: Pedido) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Pedido #${pedido.id.take(8)}", style = MaterialTheme.typography.headlineSmall)
+        Text("Status: ${pedido.status.descricao}", style = MaterialTheme.typography.titleMedium)
+        Text("Acompanhamento", style = MaterialTheme.typography.titleMedium)
+        StatusPedido.entries.forEachIndexed { indice, status ->
+            val marcador = when {
+                status == pedido.status -> "Atual"
+                indice < pedido.status.ordinal -> "Concluído"
+                else -> "Aguardando"
+            }
+            Text("${status.descricao} — $marcador")
+        }
+        Text("Itens", style = MaterialTheme.typography.titleMedium)
+        pedido.itens.forEach { item ->
+            Text("${item.quantidade} × ${item.nomeProduto} — ${formatarValor(item.subtotalCentavos)}")
+        }
+        Text("Subtotal: ${formatarValor(pedido.subtotalCentavos)}")
+        Text("Total: ${formatarValor(pedido.totalCentavos)}")
+        val endereco = pedido.endereco
+        Text("Entrega: ${endereco.rua}, ${endereco.numero} · ${endereco.bairro} · ${endereco.cidade} · CEP ${endereco.cep}")
+        if (endereco.complemento.isNotBlank()) Text("Complemento: ${endereco.complemento}")
     }
 }
 
