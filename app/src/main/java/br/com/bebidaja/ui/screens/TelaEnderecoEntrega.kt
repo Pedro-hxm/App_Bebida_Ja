@@ -55,6 +55,7 @@ fun TelaEnderecoEntrega(
             value = rua,
             onValueChange = { rua = it; enderecoSalvo = false },
             label = { Text("Rua") },
+            isError = tentouSalvar && rua.isBlank(),
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
@@ -62,6 +63,7 @@ fun TelaEnderecoEntrega(
             value = numero,
             onValueChange = { numero = it; enderecoSalvo = false },
             label = { Text("Número") },
+            isError = tentouSalvar && numero.isBlank(),
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
@@ -69,6 +71,7 @@ fun TelaEnderecoEntrega(
             value = bairro,
             onValueChange = { bairro = it; enderecoSalvo = false },
             label = { Text("Bairro") },
+            isError = tentouSalvar && bairro.isBlank(),
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
@@ -76,6 +79,7 @@ fun TelaEnderecoEntrega(
             value = cidade,
             onValueChange = { cidade = it; enderecoSalvo = false },
             label = { Text("Cidade") },
+            isError = tentouSalvar && cidade.isBlank(),
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
@@ -83,6 +87,7 @@ fun TelaEnderecoEntrega(
             value = cep,
             onValueChange = { cep = it; enderecoSalvo = false },
             label = { Text("CEP") },
+            isError = tentouSalvar && !cepValido,
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
