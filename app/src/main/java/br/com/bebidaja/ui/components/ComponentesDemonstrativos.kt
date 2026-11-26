@@ -2,6 +2,7 @@ package br.com.bebidaja.ui.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,12 +16,15 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import br.com.bebidaja.data.DemoBeverage
 import br.com.bebidaja.data.DemoStore
@@ -96,6 +100,35 @@ fun BeverageCard(beverage: DemoBeverage, onAddClick: () -> Unit = {}) {
 }
 
 @Composable
+fun ImagemEmpresa(store: DemoStore, modifier: Modifier = Modifier) {
+    val nome = store.name.trim().ifBlank { "estabelecimento" }
+    val imagem = store.imageRes
+    if (imagem != null) {
+        Image(
+            painter = painterResource(imagem),
+            contentDescription = "Imagem de $nome",
+            modifier = modifier,
+            contentScale = ContentScale.Crop
+        )
+    } else {
+        Surface(
+            modifier = modifier,
+            color = MaterialTheme.colorScheme.surfaceVariant
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    "Imagem da empresa não informada",
+                    modifier = Modifier.padding(8.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun StoreCard(store: DemoStore, onClick: () -> Unit) {
     Card(
         onClick = onClick,
@@ -120,14 +153,17 @@ fun StoreCard(store: DemoStore, onClick: () -> Unit) {
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text(store.name, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    store.name.trim().ifBlank { "Não informado" },
+                    style = MaterialTheme.typography.titleMedium
+                )
                 Text(
                     demoStoreRegionLabel(store),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    store.description,
+                    store.description.trim().ifBlank { "Não informado" },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
