@@ -34,6 +34,7 @@ import br.com.bebidaja.data.DadosComerciaisEmpresa
 import br.com.bebidaja.data.PerfilIncompletoException
 import br.com.bebidaja.data.RepositorioAutenticacaoFirebase
 import br.com.bebidaja.data.TipoPerfil
+import br.com.bebidaja.ui.components.SeletorImagemLocal
 
 @Composable
 fun LoginScreen(firebaseDisponivel: Boolean, onRegisterClick: () -> Unit, onExploreClick: () -> Unit, onLoginSuccess: (TipoPerfil) -> Unit) {
@@ -79,6 +80,8 @@ fun RegistrationScreen(
     var telefone by rememberSaveable { mutableStateOf("") }
     var horario by rememberSaveable { mutableStateOf("") }
     var area by rememberSaveable { mutableStateOf("") }
+    var regiao by rememberSaveable { mutableStateOf("Goiana") }
+    var imagemEmpresa by rememberSaveable { mutableStateOf<String?>(null) }
     var tipo by rememberSaveable { mutableStateOf(TipoPerfil.CLIENTE) }
     var carregando by rememberSaveable { mutableStateOf(false) }
     var mensagem by rememberSaveable { mutableStateOf<String?>(null) }
@@ -98,10 +101,12 @@ fun RegistrationScreen(
             OutlinedTextField(telefone, { if (it.length <= 20) telefone = it }, Modifier.fillMaxWidth(), label = { Text("Telefone com DDD") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone))
             OutlinedTextField(horario, { horario = it }, Modifier.fillMaxWidth(), label = { Text("Horário de funcionamento") }, singleLine = true)
             OutlinedTextField(area, { area = it }, Modifier.fillMaxWidth(), label = { Text("Área de entrega") }, singleLine = true)
+            OutlinedTextField(regiao, { if (it.length <= 80) regiao = it }, Modifier.fillMaxWidth(), label = { Text("Região") }, singleLine = true)
+            SeletorImagemLocal("Imagem da empresa (opcional)", "empresas", imagemEmpresa) { imagemEmpresa = it }
         }
         Button(onClick = {
             val n = nome.trim(); val e = email.trim().lowercase()
-            val comercial = if (tipo == TipoPerfil.EMPRESA) DadosComerciaisEmpresa(n, endereco.trim(), telefone.trim(), horario.trim(), area.trim()) else null
+            val comercial = if (tipo == TipoPerfil.EMPRESA) DadosComerciaisEmpresa(n, endereco.trim(), telefone.trim(), horario.trim(), area.trim(), regiao.trim(), imagemEmpresa) else null
             when {
                 n.isBlank() -> mensagem = "Informe seu nome ou o nome comercial."
                 !Patterns.EMAIL_ADDRESS.matcher(e).matches() -> mensagem = "Informe um e-mail válido."
@@ -110,6 +115,7 @@ fun RegistrationScreen(
                 comercial != null && comercial.telefone.filter(Char::isDigit).length < 10 -> mensagem = "Informe um telefone com DDD."
                 comercial != null && comercial.horario.isBlank() -> mensagem = "Informe o horário de funcionamento."
                 comercial != null && comercial.areaEntrega.isBlank() -> mensagem = "Informe a área de entrega."
+                comercial != null && comercial.regiao.isBlank() -> mensagem = "Informe a região de atendimento."
                 else -> {
                     carregando = true; mensagem = null
                     RepositorioAutenticacaoFirebase.criarConta(n, e, senha, tipo) { resultado ->

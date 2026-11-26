@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,8 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import br.com.bebidaja.data.Empresa
 import br.com.bebidaja.data.ProdutoCatalogo
-import java.text.NumberFormat
-import java.util.Locale
+import br.com.bebidaja.ui.components.ImagemLocal
 
 @Composable
 fun TelaDetalhesEmpresa(empresa: Empresa?, produtos: List<ProdutoCatalogo>, onVerCatalogo: () -> Unit, onVoltar: () -> Unit) {
@@ -33,6 +33,7 @@ fun TelaDetalhesEmpresa(empresa: Empresa?, produtos: List<ProdutoCatalogo>, onVe
             Text(empresa?.nome ?: "Estabelecimento não encontrado", style = MaterialTheme.typography.headlineMedium)
         }
         if (empresa == null) item { Text("Não encontramos esse estabelecimento.") } else {
+            item { ImagemLocal(empresa.imagemPath, "Imagem de ${empresa.nome}", Modifier.fillMaxWidth().height(180.dp)) }
             item { Text("${empresa.endereco} · ${empresa.regiao}") }
             item { Text("Telefone: ${empresa.telefone}") }
             item { Text("Funcionamento: ${empresa.horario}") }
@@ -42,3 +43,6 @@ fun TelaDetalhesEmpresa(empresa: Empresa?, produtos: List<ProdutoCatalogo>, onVe
         }
     }
 }
+
+internal fun formatarCampoEmpresa(valor: String?): String =
+    valor?.takeIf(String::isNotBlank) ?: "Não informado"

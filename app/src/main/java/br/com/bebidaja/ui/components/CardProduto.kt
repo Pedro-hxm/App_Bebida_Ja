@@ -143,30 +143,10 @@ fun CardProduto(
 
 @Composable
 fun ImagemProduto(produto: ProdutoDemonstrativo, modifier: Modifier = Modifier) {
-    val imagem = produto.imagemRes
-    if (imagem != null) {
-        Image(
-            painter = painterResource(imagem),
-            contentDescription = "Imagem de ${produto.nome?.takeIf(String::isNotBlank) ?: "produto"}",
-            modifier = modifier,
-            contentScale = ContentScale.Crop
-        )
-    } else {
-        Surface(
-            modifier = modifier,
-            color = MaterialTheme.colorScheme.surfaceVariant
-        ) {
-            Column(
-                modifier = Modifier.padding(8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    "Imagem não informada",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
+    ImagemLocal(
+        imagemPath = produto.imagemPath,
+        contentDescription = "Imagem de ${produto.nome?.takeIf(String::isNotBlank) ?: "produto"}",
+        modifier = modifier,
+        imagemResFallback = produto.imagemRes
+    )
 }
