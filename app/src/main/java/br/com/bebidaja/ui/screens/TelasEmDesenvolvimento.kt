@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import br.com.bebidaja.data.TipoPerfil
 import br.com.bebidaja.data.Pedido
+import br.com.bebidaja.ui.navigation.DemoSession
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -80,8 +81,10 @@ private fun formatarValorPedido(centavos: Long): String =
 @Composable
 fun ProfileScreen(
     tipoPerfil: TipoPerfil?,
+    demoSession: DemoSession?,
     mostrarSaida: Boolean,
     onCompanyClick: () -> Unit,
+    onOrdersClick: () -> Unit,
     onSignOutClick: () -> Unit
 ) {
     Column(
@@ -92,6 +95,11 @@ fun ProfileScreen(
         horizontalAlignment = Alignment.Start
     ) {
         Text("Perfil", style = MaterialTheme.typography.headlineMedium)
+        if (demoSession != null) {
+            Text("DEMONSTRAÇÃO — dados fictícios", color = MaterialTheme.colorScheme.primary)
+            Text("Nome: ${demoSession.nome}")
+            Text("E-mail: ${demoSession.email}")
+        }
         Text(
             when (tipoPerfil) {
                 TipoPerfil.CLIENTE -> "Conta de cliente"
@@ -99,12 +107,17 @@ fun ProfileScreen(
                 null -> "As opções de conta serão adicionadas durante o projeto."
             }
         )
-        Button(onClick = onCompanyClick) {
-            Text("Área da empresa (demonstração)")
+        if (demoSession == null || tipoPerfil == TipoPerfil.EMPRESA) {
+            Button(onClick = onCompanyClick) {
+                Text("Área da empresa (demonstração)")
+            }
+        }
+        if (demoSession?.tipoPerfil == TipoPerfil.CLIENTE) {
+            Button(onClick = onOrdersClick) { Text("Ver pedidos") }
         }
         if (mostrarSaida) {
             TextButton(onClick = onSignOutClick) {
-                Text("Sair da conta")
+                Text(if (demoSession != null) "Sair da demonstração" else "Sair da conta")
             }
         }
     }
@@ -113,7 +126,9 @@ fun ProfileScreen(
 @Composable
 fun CompanyScreen(
     onBackClick: () -> Unit,
+    demoSession: DemoSession?,
     mostrarSaida: Boolean,
+    onProfileClick: () -> Unit,
     onSignOutClick: () -> Unit
 ) {
     Column(
@@ -123,13 +138,20 @@ fun CompanyScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text("Área da empresa", style = MaterialTheme.typography.headlineMedium)
+        if (demoSession != null) {
+            Text("DEMONSTRAÇÃO — dados fictícios", color = MaterialTheme.colorScheme.primary)
+            Text("Nome: ${demoSession.nome}")
+            Text("E-mail: ${demoSession.email}")
+            Text("Perfil: Empresa")
+            TextButton(onClick = onProfileClick) { Text("Ver perfil demonstrativo") }
+        }
         Text("Cadastro comercial e painel serão desenvolvidos nas próximas etapas.")
         Button(onClick = onBackClick) {
             Text("Voltar")
         }
         if (mostrarSaida) {
             TextButton(onClick = onSignOutClick) {
-                Text("Sair da conta")
+                Text(if (demoSession != null) "Sair da demonstração" else "Sair da conta")
             }
         }
     }

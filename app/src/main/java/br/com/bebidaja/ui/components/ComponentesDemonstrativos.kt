@@ -84,7 +84,8 @@ fun BeverageCard(beverage: DemoBeverage, onAddClick: () -> Unit = {}) {
 fun StoreCard(store: DemoStore) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = AzulClaro)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
