@@ -83,7 +83,14 @@ class RepositorioDadosLocaisInstrumentedTest {
         assertTrue(reaberto.atualizarStatus(pedido.id, empresa.id, StatusPedido.EM_PREPARACAO))
         assertFalse(reaberto.atualizarStatus(pedido.id, empresa.id, StatusPedido.ENTREGUE))
         assertEquals(StatusPedido.EM_PREPARACAO, reaberto.listarPorEmpresa(empresa.id).single().status)
+        assertTrue(reaberto.atualizarStatus(pedido.id, empresa.id, StatusPedido.SAIU_PARA_ENTREGA))
+        assertTrue(reaberto.atualizarStatus(pedido.id, empresa.id, StatusPedido.ENTREGUE))
+        assertFalse(reaberto.atualizarStatus(pedido.id, empresa.id, StatusPedido.RECEBIDO))
         reaberto.fechar()
+        val ultimaConsulta = RepositorioDadosLocais(context, nomeBanco)
+        assertEquals(StatusPedido.ENTREGUE, ultimaConsulta.listarPorCliente("cliente-1").single().status)
+        assertTrue(ultimaConsulta.listarPorEmpresa("outra-empresa").isEmpty())
+        ultimaConsulta.fechar()
     }
 
     @Test
