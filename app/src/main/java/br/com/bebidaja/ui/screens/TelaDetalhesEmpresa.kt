@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
+import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,7 +37,8 @@ import br.com.bebidaja.ui.theme.AzulClaro
 @Composable
 fun TelaDetalhesEmpresa(
     empresa: DemoStore?,
-    onVoltar: () -> Unit
+    onVoltar: () -> Unit,
+    onAbrirCatalogo: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -103,6 +105,12 @@ fun TelaDetalhesEmpresa(
                         formatarCampoEmpresa(empresa.deliveryArea)
                     )
                 }
+            }
+            Button(
+                onClick = onAbrirCatalogo,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Ver catálogo de bebidas")
             }
         }
     }

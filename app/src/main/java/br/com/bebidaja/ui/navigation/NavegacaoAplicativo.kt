@@ -37,20 +37,28 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import br.com.bebidaja.data.RepositorioAutenticacaoFirebase
-import br.com.bebidaja.data.findDemoStoreById
+import br.com.bebidaja.data.RepositorioCatalogoDemonstrativo
 import br.com.bebidaja.data.RepositorioPedidosEmMemoria
 import br.com.bebidaja.data.EnderecoEntrega
 import br.com.bebidaja.data.FormaPagamento
 import br.com.bebidaja.data.ProdutoCarrinho
+import br.com.bebidaja.data.ProdutoDemonstrativo
 import br.com.bebidaja.data.TipoPerfil
+import br.com.bebidaja.data.demoStores
+import br.com.bebidaja.data.findDemoStoreById
+import br.com.bebidaja.data.mapearProdutoParaCarrinho
+import br.com.bebidaja.data.podeAdicionarAoCarrinho
 import br.com.bebidaja.ui.screens.CompanyScreen
 import br.com.bebidaja.ui.screens.HomeScreen
+import br.com.bebidaja.ui.screens.TelaCatalogoEmpresa
 import br.com.bebidaja.ui.screens.TelaDetalhesEmpresa
+import br.com.bebidaja.ui.screens.TelaDetalhesProduto
+import br.com.bebidaja.ui.screens.TelaGerenciamentoProdutos
+import br.com.bebidaja.ui.screens.TelaPesquisaCatalogo
 import br.com.bebidaja.ui.screens.LoginScreen
 import br.com.bebidaja.ui.screens.OrdersScreen
 import br.com.bebidaja.ui.screens.ProfileScreen
 import br.com.bebidaja.ui.screens.RegistrationScreen
-import br.com.bebidaja.ui.screens.SearchScreen
 import br.com.bebidaja.ui.screens.SplashScreen
 import br.com.bebidaja.ui.screens.EstadoCarrinhoUi
 import br.com.bebidaja.ui.screens.TelaCarrinho
@@ -81,6 +89,19 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
     val demoSession = perfilDemonstracao?.let(::criarDemoSession)
     val estadoCarrinho = remember(geracaoDemonstracao) { EstadoCarrinhoUi() }
     val repositorioPedidos = remember(geracaoDemonstracao) { RepositorioPedidosEmMemoria() }
+    val repositorioCatalogo = remember { RepositorioCatalogoDemonstrativo() }
+    var produtosCatalogo by remember {
+        mutableStateOf(repositorioCatalogo.listarTodos())
+    }
+    val empresaIdGerenciada = when {
+        demoSession?.tipoPerfil == TipoPerfil.EMPRESA -> "adega-central"
+        usuarioAutenticado && tipoPerfilAtual == TipoPerfil.EMPRESA ->
+            runCatching { FirebaseAuth.getInstance().currentUser?.uid }.getOrNull()
+        else -> null
+    }
+    val podeGerenciarProdutos = empresaIdGerenciada != null &&
+        (demoSession?.tipoPerfil == TipoPerfil.EMPRESA ||
+            usuarioAutenticado && tipoPerfilAtual == TipoPerfil.EMPRESA)
     val clienteIdAtual = remember(usuarioAutenticado, perfilDemonstracao) {
         if (usuarioAutenticado && perfilDemonstracao == null) {
             runCatching { FirebaseAuth.getInstance().currentUser?.uid }.getOrNull()
@@ -88,6 +109,17 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
         } else {
             "cliente-demonstracao"
         }
+    }
+
+    fun atualizarCatalogo() {
+        produtosCatalogo = repositorioCatalogo.listarTodos()
+    }
+
+    fun adicionarAoCarrinho(produto: ProdutoDemonstrativo): Boolean {
+        if (!podeAdicionarAoCarrinho(produto, estadoCarrinho.carrinho)) return false
+        val item = mapearProdutoParaCarrinho(produto) ?: return false
+        estadoCarrinho.adicionar(item)
+        return true
     }
 
     val tabs = listOf(
@@ -237,21 +269,15 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
             }
             composable("home") {
                 HomeScreen(
+                    produtos = produtosCatalogo,
                     onSearchClick = { navController.openTab("search") },
                     onStoreClick = { storeId ->
                         navController.navigate("empresa/${Uri.encode(storeId)}")
                     },
-                    onAddToCart = { bebida ->
-                        val centavos = bebida.price.filter(Char::isDigit).toLongOrNull() ?: 0L
-                        estadoCarrinho.adicionar(
-                            ProdutoCarrinho(
-                                produtoId = bebida.name.lowercase().replace(" ", "-"),
-                                empresaId = "demonstracao",
-                                nome = bebida.name,
-                                precoUnitarioCentavos = centavos
-                            )
-                        )
-                    }
+                    onProductClick = { productId ->
+                        navController.navigate("produto-detalhe/${Uri.encode(productId)}")
+                    },
+                    onAddToCart = ::adicionarAoCarrinho
                 )
             }
             composable("empresa/{empresaId}") { backStackEntry ->
@@ -259,10 +285,97 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
                     ?.let { findDemoStoreById(it) }
                 TelaDetalhesEmpresa(
                     empresa = empresa,
-                    onVoltar = { navController.popBackStack() }
+                    onVoltar = { navController.popBackStack() },
+                    onAbrirCatalogo = {
+                        if (empresa != null) {
+                            navController.navigate(
+                                "empresa/${Uri.encode(empresa.id)}/catalogo"
+                            )
+                        }
+                    }
                 )
             }
-            composable("search") { SearchScreen() }
+            composable("empresa/{empresaId}/catalogo") { backStackEntry ->
+                val empresaId = backStackEntry.arguments?.getString("empresaId").orEmpty()
+                val empresa = findDemoStoreById(empresaId)
+                TelaCatalogoEmpresa(
+                    empresa = empresa,
+                    produtos = produtosCatalogo.filter { it.empresaId == empresaId },
+                    onVoltar = { navController.popBackStack() },
+                    onProdutoClick = { productId ->
+                        navController.navigate("produto-detalhe/${Uri.encode(productId)}")
+                    },
+                    onAdicionarAoCarrinho = ::adicionarAoCarrinho
+                )
+            }
+            composable("produto-detalhe/{produtoId}") { backStackEntry ->
+                val produtoId = backStackEntry.arguments?.getString("produtoId").orEmpty()
+                val produto = produtosCatalogo.firstOrNull { it.id == produtoId }
+                val empresa = produto?.let { findDemoStoreById(it.empresaId) }
+                TelaDetalhesProduto(
+                    produto = produto,
+                    empresa = empresa,
+                    onVoltar = { navController.popBackStack() },
+                    onAdicionarAoCarrinho = ::adicionarAoCarrinho
+                )
+            }
+            composable("empresa/{empresaId}/produtos") { backStackEntry ->
+                val empresaId = backStackEntry.arguments?.getString("empresaId").orEmpty()
+                if (podeGerenciarProdutos && empresaId == empresaIdGerenciada) {
+                    TelaGerenciamentoProdutos(
+                        empresaId = empresaId,
+                        empresa = findDemoStoreById(empresaId),
+                        nomeEmpresa = findDemoStoreById(empresaId)?.name
+                            ?: "Empresa demonstrativa",
+                        produtos = produtosCatalogo.filter { it.empresaId == empresaId },
+                        onVoltar = { navController.popBackStack() },
+                        onSalvarProduto = { produto ->
+                            val salvo = repositorioCatalogo.salvar(produto)
+                            if (salvo) atualizarCatalogo()
+                            salvo
+                        },
+                        onAlterarDisponibilidade = { productId, companyId, disponivel ->
+                            val alterado = repositorioCatalogo.alterarDisponibilidade(
+                                productId,
+                                companyId,
+                                disponivel
+                            )
+                            if (alterado) atualizarCatalogo()
+                            alterado
+                        },
+                        onRemoverProduto = { productId, companyId ->
+                            val removido = repositorioCatalogo.remover(productId, companyId)
+                            if (removido) atualizarCatalogo()
+                            removido
+                        }
+                    )
+                } else {
+                    androidx.compose.foundation.layout.Column(
+                        modifier = Modifier.padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text("Este catálogo não está disponível para o perfil atual.")
+                        androidx.compose.material3.Button(
+                            onClick = { navController.popBackStack() }
+                        ) {
+                            Text("Voltar")
+                        }
+                    }
+                }
+            }
+            composable("search") {
+                TelaPesquisaCatalogo(
+                    produtos = produtosCatalogo,
+                    empresas = demoStores,
+                    onEmpresaClick = { storeId ->
+                        navController.navigate("empresa/${Uri.encode(storeId)}")
+                    },
+                    onProdutoClick = { productId ->
+                        navController.navigate("produto-detalhe/${Uri.encode(productId)}")
+                    },
+                    onAdicionarAoCarrinho = ::adicionarAoCarrinho
+                )
+            }
             composable("cart") {
                 TelaCarrinho(estadoCarrinho) {
                     if (!estadoCarrinho.carrinho.estaVazio) {
@@ -347,6 +460,14 @@ fun NavegacaoAplicativo(firebaseDisponivel: Boolean) {
                     onBackClick = { navController.popBackStack() },
                     demoSession = demoSession,
                     mostrarSaida = usuarioAutenticado || demoSession != null,
+                    podeGerenciarProdutos = podeGerenciarProdutos,
+                    onManageProductsClick = {
+                        empresaIdGerenciada?.let { empresaId ->
+                            navController.navigate(
+                                "empresa/${Uri.encode(empresaId)}/produtos"
+                            )
+                        }
+                    },
                     onProfileClick = { navController.navigate("profile") { launchSingleTop = true } },
                     onSignOutClick = { if (demoSession != null) sairDaDemonstracao() else encerrarSessao() }
                 )
